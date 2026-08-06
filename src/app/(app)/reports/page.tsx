@@ -1,1 +1,1 @@
-import { ReportsView } from "@/components/reports/reports-view"; export default function Page(){return <ReportsView/>}
+import { ReportsPage } from "@/components/reports/reports-page"; export const dynamic="force-dynamic"; export default function Page(){return <ReportsPage/>}

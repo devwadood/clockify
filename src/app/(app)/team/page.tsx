@@ -1,1 +1,1 @@
-import { TeamView } from "@/components/settings/settings-view"; export default function Page(){return <TeamView/>}
+import { TeamPage } from "@/components/settings/team-page"; export const dynamic="force-dynamic"; export default function Page(){return <TeamPage/>}

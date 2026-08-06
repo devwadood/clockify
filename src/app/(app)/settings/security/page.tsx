@@ -1,1 +1,1 @@
-import { SettingsView } from "@/components/settings/settings-view"; export default function Page(){return <SettingsView/>}
+import { SettingsView } from "@/components/settings/settings-view"; import { requireUser } from "@/lib/auth/session"; export default async function Page(){const user=await requireUser();return <SettingsView user={user}/>}

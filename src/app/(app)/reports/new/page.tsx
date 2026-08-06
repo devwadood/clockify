@@ -1,1 +1,8 @@
-import { ReportBuilder } from "@/components/reports/reports-view"; export default function Page(){return <ReportBuilder/>}
+import { and, eq, isNull } from "drizzle-orm";
+import { FileBarChart } from "lucide-react";
+import { getDb } from "@/db";
+import { projectMembers, projects } from "@/db/schema";
+import { requireUser } from "@/lib/auth/session";
+import { PageHeader } from "@/components/ui/page-header";
+export const dynamic="force-dynamic";
+export default async function Page(){const user=await requireUser();const rows=await getDb().select({id:projects.id,name:projects.name}).from(projectMembers).innerJoin(projects,eq(projects.id,projectMembers.projectId)).where(and(eq(projectMembers.userId,user.id),isNull(projectMembers.revokedAt),isNull(projects.deletedAt)));return <><PageHeader title="Build a report" description="Create a report from your recorded time."/>{rows.length?<section className="card max-w-xl p-5"><div className="grid gap-4"><div><label className="label">Report title</label><input className="field" placeholder="e.g. Monthly time summary"/></div><div><label className="label">Project</label><select className="field"><option value="">All projects</option>{rows.map(project=><option key={project.id} value={project.id}>{project.name}</option>)}</select></div><div className="grid grid-cols-2 gap-3"><div><label className="label">From</label><input className="field" type="date"/></div><div><label className="label">To</label><input className="field" type="date"/></div></div><button className="btn btn-primary w-fit"><FileBarChart size={15}/>Generate from my time</button></div></section>:<section className="card p-10 text-center"><p className="muted text-sm">Create a project and log time before generating a report.</p></section>}</>}

@@ -1,2 +1,2 @@
-import { TimesheetView } from "@/components/timesheets/timesheet-view";
-export default function Page(){return <TimesheetView/>}
+import { TimesheetPage } from "@/components/timesheets/timesheet-page";
+export const dynamic="force-dynamic"; export default function Page(){return <TimesheetPage/>}

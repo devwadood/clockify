@@ -9,7 +9,7 @@ import {
   Share2, TimerReset, Users, X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { currentUser } from "@/lib/demo-data";
+import { initials } from "@/lib/utils";
 
 const nav = [
   { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
@@ -21,7 +21,7 @@ const nav = [
   { label: "Shared reports", href: "/shared-reports", icon: Share2 },
 ];
 
-export function AppShell({ children }: { children: React.ReactNode }) {
+export function AppShell({ children, user }: { children: React.ReactNode; user: { name: string; email: string } }) {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -37,7 +37,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     <div className="mx-3 mt-2 mb-5">
       <button className={cn("flex h-11 w-full items-center rounded-[10px] border border-[var(--border)] bg-[var(--surface-2)] px-2.5 hover:border-[#d8d8de]", collapsed ? "justify-center" : "gap-2.5")}>
         <span className="grid size-7 shrink-0 place-items-center rounded-md bg-[#1f2937] text-[10px] font-bold text-white">NS</span>
-        {!collapsed && <><span className="min-w-0 flex-1 truncate text-left text-[13px] font-semibold">Northstar Studio</span><ChevronDown size={14} className="muted"/></>}
+        {!collapsed && <><span className="min-w-0 flex-1 truncate text-left text-[13px] font-semibold">{user.name}&apos;s workspace</span><ChevronDown size={14} className="muted"/></>}
       </button>
     </div>
     <nav className="flex-1 space-y-1 px-3" aria-label="Main navigation">
@@ -66,7 +66,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <div className="ml-auto flex items-center gap-2">
           <Link href="/timer" className="btn btn-primary hidden sm:inline-flex"><Play size={14} fill="currentColor"/>Start timer</Link>
           <button aria-label="Notifications" className="btn icon-btn relative"><Bell size={17}/><span className="absolute top-2 right-2 size-1.5 rounded-full bg-[var(--danger)] ring-2 ring-[var(--surface)]"/></button>
-          <button aria-label="Open profile menu" className="flex items-center gap-2 rounded-lg p-1.5 hover:bg-[var(--surface)]"><span className="grid size-8 place-items-center rounded-lg bg-[#292733] text-[11px] font-bold text-white">{currentUser.initials}</span><ChevronDown size={14} className="desktop-only muted"/></button>
+          <button aria-label={`Open profile menu for ${user.name}`} className="flex items-center gap-2 rounded-lg p-1.5 hover:bg-[var(--surface)]"><span className="grid size-8 place-items-center rounded-lg bg-[#292733] text-[11px] font-bold text-white">{initials(user.name)}</span><ChevronDown size={14} className="desktop-only muted"/></button>
         </div>
       </header>
       <main className="mx-auto min-h-[calc(100vh-64px)] max-w-[1500px] p-4 pb-24 md:p-7 md:pb-8">{children}</main>

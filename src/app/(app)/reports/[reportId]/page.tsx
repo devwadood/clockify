@@ -1,1 +1,1 @@
-import { ReportDetail } from "@/components/reports/reports-view"; export default function Page(){return <ReportDetail/>}
+import { ReportPage } from "@/components/reports/report-page"; export const dynamic="force-dynamic"; export default async function Page({params}:{params:Promise<{reportId:string}>}){return <ReportPage reportId={(await params).reportId}/>}
