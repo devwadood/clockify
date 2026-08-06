@@ -21,6 +21,8 @@ a { color:inherit; text-decoration:none; }
 .btn-primary:hover { background:var(--accent-dark); }
 .icon-btn { width:38px; padding:0; }
 .field { width:100%; height:42px; padding:0 12px; color:var(--text); background:var(--surface); border:1px solid var(--border); border-radius:9px; outline:none; transition:.15s; }
+.field-leading { padding-left:40px; }
+.field-trailing { padding-right:40px; }
 .field:focus { border-color:var(--accent); box-shadow:0 0 0 3px color-mix(in srgb, var(--accent) 15%, transparent); }
 .label { display:block; font-size:13px; font-weight:600; margin-bottom:7px; }
 .muted { color:var(--muted); }

@@ -11,7 +11,7 @@ export const auth = betterAuth({
   appName: "Tempo",
   baseURL: appUrl,
   secret: process.env.BETTER_AUTH_SECRET,
-  database: drizzleAdapter(getDb(), { provider: "pg", schema, usePlural: true }),
+  database: drizzleAdapter(getDb(), { provider: "pg", schema }),
   emailAndPassword: {
     enabled: true,
     requireEmailVerification: true,
