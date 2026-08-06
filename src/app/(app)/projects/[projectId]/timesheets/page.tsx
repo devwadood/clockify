@@ -1,0 +1,1 @@
+import { ProjectDetail } from "@/components/projects/project-detail"; export default async function Page({params}:{params:Promise<{projectId:string}>}){return <ProjectDetail projectId={(await params).projectId}/>}

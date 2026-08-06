@@ -1,0 +1,26 @@
+"use client";
+
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { CalendarDays, ChevronLeft, ChevronRight, Copy, Filter, ListFilter, Plus, Send } from "lucide-react";
+import { toast } from "sonner";
+import { entries, projects } from "@/lib/demo-data";
+import { PageHeader } from "@/components/ui/page-header";
+import { cn } from "@/lib/utils";
+
+const days = [
+  {day:"Mon",date:"03",hours:"7h 36m", entries:[{p:0,h:"4h 20m"},{p:1,h:"3h 16m"}]},
+  {day:"Tue",date:"04",hours:"7h 42m", entries:[{p:0,h:"2h 40m"},{p:2,h:"5h 02m"}]},
+  {day:"Wed",date:"05",hours:"7h 18m", entries:[{p:1,h:"5h 11m"},{p:2,h:"2h 07m"}]},
+  {day:"Thu",date:"06",hours:"6h 12m",today:true, entries:[{p:0,h:"2h 36m"},{p:1,h:"3h 36m"}]},
+  {day:"Fri",date:"07",hours:"2h 36m", entries:[{p:0,h:"2h 36m"}]},
+  {day:"Sat",date:"08",hours:"—",weekend:true,entries:[]},{day:"Sun",date:"09",hours:"—",weekend:true,entries:[]},
+];
+
+export function TimesheetView() {
+  const path=usePathname(); const isList=path==="/timesheets";
+  return <><PageHeader title="Timesheets" description="Review, organize, and submit your logged time." actions={<><button className="btn" onClick={()=>toast.success("Previous week copied") }><Copy size={14}/>Copy last week</button><Link className="btn btn-primary" href="/timer"><Plus size={15}/>Add time</Link></>}/>
+    <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><div className="flex w-fit rounded-[10px] border border-[var(--border)] bg-[var(--surface)] p-1">{[["Day","/timesheets/day"],["Week","/timesheets/week"],["Month","/timesheets/month"],["List","/timesheets"]].map(([l,h])=><Link key={l} href={h} className={cn("rounded-md px-3 py-1.5 text-xs font-semibold",path===h?"bg-[var(--surface-2)] shadow-sm":"muted")}>{l}</Link>)}</div><div className="flex items-center gap-2"><button className="btn icon-btn"><ChevronLeft size={16}/></button><button className="btn min-w-48"><CalendarDays size={15}/>{isList?"Aug 1 – Aug 31, 2026":"Aug 3 – Aug 9, 2026"}</button><button className="btn icon-btn"><ChevronRight size={16}/></button><button className="btn icon-btn ml-1"><Filter size={15}/></button></div></div>
+    {isList ? <div className="card overflow-hidden"><div className="flex items-center gap-3 border-b border-[var(--border)] p-4"><ListFilter size={17} className="muted"/><input className="min-w-0 flex-1 bg-transparent text-sm outline-none" placeholder="Search description, project, or tag…"/><span className="badge">August</span></div><div className="overflow-x-auto"><table className="w-full min-w-[790px] text-left text-[13px]"><thead className="bg-[var(--surface-2)] text-[11px] text-[var(--muted)] uppercase"><tr>{["Date","Description","Project","Time","Duration","Billable","Status"].map(h=><th key={h} className="px-4 py-3 font-semibold">{h}</th>)}</tr></thead><tbody>{entries.map(e=><tr key={e.id} className="border-t border-[var(--border)] hover:bg-[var(--surface-2)]"><td className="px-4 py-3.5">{e.date}</td><td className="max-w-[260px] truncate px-4 py-3.5 font-medium">{e.description}</td><td className="px-4 py-3.5"><span className="flex items-center gap-2"><i className="size-2 rounded-full" style={{background:e.color}}/>{e.project}</span></td><td className="muted px-4 py-3.5">{e.time}</td><td className="px-4 py-3.5 font-semibold">{e.duration}</td><td className="px-4 py-3.5">{e.billable?"Yes":"No"}</td><td className="px-4 py-3.5"><span className="badge">{e.status}</span></td></tr>)}</tbody></table></div></div> : <><div className="card overflow-hidden"><div className="grid grid-cols-1 md:grid-cols-7">{days.map((d)=><div key={d.day} className={cn("min-h-[260px] border-b border-[var(--border)] p-3 md:border-r md:border-b-0 last:border-r-0",d.weekend&&"bg-[var(--surface-2)]")}><div className="mb-4 flex items-center justify-between md:block"><p className="muted text-[11px] font-bold uppercase">{d.day}</p><p className={cn("mt-1 grid size-7 place-items-center rounded-full text-[13px] font-semibold",d.today&&"bg-[var(--accent)] text-white")}>{d.date}</p></div><div className="space-y-2">{d.entries.map((e,i)=><button key={i} className="w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] p-2.5 text-left hover:border-[var(--accent)]"><span className="mb-2 block size-2 rounded-full" style={{background:projects[e.p].color}}/><span className="block truncate text-[11px] font-semibold">{projects[e.p].name}</span><span className="muted mt-1 block text-[11px]">{e.h}</span></button>)}{!d.weekend&&<button className="flex w-full items-center justify-center gap-1 rounded-lg border border-dashed border-[var(--border)] py-2 text-[11px] text-[var(--muted)] hover:border-[var(--accent)] hover:text-[var(--accent)]"><Plus size={12}/>Add</button>}</div><p className="mt-4 text-center text-xs font-bold">{d.hours}</p></div>)}</div><div className="flex flex-col gap-3 border-t border-[var(--border)] bg-[var(--surface-2)] p-4 sm:flex-row sm:items-center"><div><p className="text-sm font-bold">31h 24m this week</p><p className="muted mt-1 text-xs">26h 05m billable · 5h 19m non-billable</p></div><button onClick={()=>toast.success("Timesheet submitted for approval")} className="btn btn-primary sm:ml-auto"><Send size={14}/>Submit timesheet</button></div></div></>}
+  </>;
+}

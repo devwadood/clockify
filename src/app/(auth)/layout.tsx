@@ -1,0 +1,1 @@
+import { AuthAside } from "@/components/layout/auth-form"; export default function Layout({children}:{children:React.ReactNode}){return <main className="grid min-h-screen lg:grid-cols-[1fr_1.05fr]"><div className="flex items-center justify-center p-6 py-12">{children}</div><AuthAside/></main>}
