@@ -1,6 +1,7 @@
 import Link from "next/link";
 import {
   CalendarDays,
+  ChevronDown,
   Filter,
   Pencil,
   Plus,
@@ -72,8 +73,8 @@ export function TimesheetView({
           </Link>
         }
       />
-      <section className="card mb-5 overflow-hidden">
-        <div className="flex items-center gap-3 border-b border-[var(--border)] p-4 md:px-5">
+      <details className="card group mb-5 overflow-hidden">
+        <summary className="flex cursor-pointer list-none items-center gap-3 border-b border-transparent p-4 transition hover:bg-[var(--surface-2)] group-open:border-[var(--border)] md:px-5 [&::-webkit-details-marker]:hidden">
           <span className="grid size-9 place-items-center rounded-lg bg-[var(--accent-soft)] text-[var(--accent)]">
             <Filter size={16} />
           </span>
@@ -84,10 +85,16 @@ export function TimesheetView({
               and status.
             </p>
           </div>
-          {activeFilters > 0 && (
-            <span className="badge ml-auto">{activeFilters} active</span>
-          )}
-        </div>
+          <span className="ml-auto flex items-center gap-3">
+            {activeFilters > 0 && (
+              <span className="badge">{activeFilters} active</span>
+            )}
+            <ChevronDown
+              size={17}
+              className="muted transition-transform group-open:rotate-180"
+            />
+          </span>
+        </summary>
         <form
           action="/timesheets"
           method="get"
@@ -104,7 +111,7 @@ export function TimesheetView({
                 name="search"
                 defaultValue={filters.search}
                 maxLength={120}
-                className="field pl-9"
+                className="field field-leading"
                 placeholder="Search recorded work…"
               />
             </div>
@@ -243,7 +250,7 @@ export function TimesheetView({
             )}
           </div>
         </form>
-      </section>
+      </details>
       <section className="mb-5 grid gap-3 sm:grid-cols-3">
         <div className="card p-4">
           <p className="muted text-xs">Matching entries</p>
