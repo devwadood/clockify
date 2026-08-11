@@ -4,12 +4,13 @@ import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  BarChart3, Bell, BriefcaseBusiness, CalendarRange, ChevronDown, CircleHelp, Clock3,
+  BarChart3, Bell, BriefcaseBusiness, CalendarRange, ChevronDown, CircleHelp,
   Command, LayoutDashboard, Menu, PanelLeftClose, Play, Plus, Search, Settings,
   Share2, TimerReset, Users, X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { initials } from "@/lib/utils";
+import { LogoMark } from "@/components/brand/logo";
 
 const nav = [
   { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
@@ -29,8 +30,8 @@ export function AppShell({ children, user }: { children: React.ReactNode; user: 
   const sidebar = <>
     <div className="flex h-16 items-center gap-3 px-4">
       <Link href="/dashboard" className="flex min-w-0 items-center gap-3">
-        <span className="grid size-9 shrink-0 place-items-center rounded-[10px] bg-[var(--accent)] text-white"><Clock3 size={19} strokeWidth={2.4}/></span>
-        {!collapsed && <span className="text-[18px] font-bold tracking-[-.03em]">tempo</span>}
+        <LogoMark className="size-9 shrink-0 text-[var(--accent)]"/>
+        {!collapsed && <span className="text-[18px] font-bold tracking-[-.03em]">Tracker</span>}
       </Link>
       <button aria-label="Close navigation" onClick={() => setMobileOpen(false)} className="mobile-only ml-auto rounded-md p-2 hover:bg-[var(--surface-2)]"><X size={19}/></button>
     </div>

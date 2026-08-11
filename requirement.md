@@ -20,7 +20,7 @@ Create a fast, durable, secure, and highly polished hours-logging platform where
 
 The production application will be deployed at:
 
-`https://clockify.abdulwadood.com`
+`https://tracker.abdulwadood.com`
 
 Build the frontend with exceptional UI/UX quality. The interface should feel like it was designed by champions of modern SaaS UI/UX: clean, fast, accessible, responsive, consistent, and pleasant to use.
 
@@ -1021,7 +1021,7 @@ Prepare the application for deployment on Vercel.
 
 Production domain:
 
-`clockify.abdulwadood.com`
+`tracker.abdulwadood.com`
 
 Deployment requirements:
 
@@ -1051,7 +1051,7 @@ Create a deployment guide explaining:
 5. Configuring Vercel Blob.
 6. Adding Vercel environment variables.
 7. Deploying to Vercel.
-8. Configuring `clockify.abdulwadood.com`.
+8. Configuring `tracker.abdulwadood.com`.
 9. Updating authentication callback URLs.
 10. Testing production email, report generation, and sharing.
 

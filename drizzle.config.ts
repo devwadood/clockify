@@ -4,6 +4,6 @@ export default defineConfig({
   schema: "./src/db/schema.ts",
   out: "./drizzle",
   dialect: "postgresql",
-  dbCredentials: { url: process.env.DATABASE_URL ?? "postgresql://user:pass@localhost:5432/tempo" },
+  dbCredentials: { url: process.env.DATABASE_URL ?? "postgresql://user:pass@localhost:5432/tracker" },
   strict: true,
 });

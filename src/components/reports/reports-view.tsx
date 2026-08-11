@@ -1,8 +1,362 @@
 "use client";
-import Link from "next/link"; import { Download, ExternalLink, FileBarChart, FileText, MoreHorizontal, Plus, Search, Share2 } from "lucide-react"; import { PageHeader } from "@/components/ui/page-header";
-const reports=[{id:"august-utilization",title:"August utilization",period:"Aug 1 – Aug 31, 2026",project:"All projects",hours:"126h 18m",amount:"$10,482.50",status:"Ready",date:"Today, 4:28 PM"},{id:"atlas-weekly",title:"Atlas weekly summary",period:"Aug 3 – Aug 9, 2026",project:"Atlas redesign",hours:"31h 24m",amount:"$2,481.75",status:"Ready",date:"Today, 2:04 PM"},{id:"luma-july",title:"Luma Health — July",period:"Jul 1 – Jul 31, 2026",project:"Mobile app",hours:"84h 42m",amount:"$8,736.50",status:"Ready",date:"Aug 1, 10:12 AM"}];
-export function ReportsView(){return <><PageHeader title="Reports" description="Turn your time data into clear, shareable insight." actions={<Link href="/reports/new" className="btn btn-primary"><Plus size={15}/>New report</Link>}/><div className="mb-5 grid gap-4 sm:grid-cols-3"><div className="card p-5"><p className="muted text-xs">Total hours · August</p><p className="mt-2 text-2xl font-bold">126h 18m</p><p className="mt-2 text-xs text-emerald-600">↑ 8.4% from July</p></div><div className="card p-5"><p className="muted text-xs">Billable amount</p><p className="mt-2 text-2xl font-bold">$10,482.50</p><p className="muted mt-2 text-xs">83% billable utilization</p></div><div className="card p-5"><p className="muted text-xs">Generated reports</p><p className="mt-2 text-2xl font-bold">12</p><p className="muted mt-2 text-xs">3 public share links</p></div></div><div className="card overflow-hidden"><div className="flex items-center gap-3 border-b border-[var(--border)] p-4"><Search size={16} className="muted"/><input className="min-w-0 flex-1 bg-transparent text-sm outline-none" placeholder="Search reports…"/><button className="btn">All reports</button></div>{reports.map(r=><Link href={`/reports/${r.id}`} key={r.id} className="group flex items-center gap-4 border-b border-[var(--border)] p-4 last:border-0 hover:bg-[var(--surface-2)] md:px-5"><span className="grid size-10 shrink-0 place-items-center rounded-xl bg-[var(--accent-soft)] text-[var(--accent)]"><FileText size={18}/></span><div className="min-w-0 flex-1"><p className="truncate text-sm font-bold">{r.title}</p><p className="muted mt-1 truncate text-xs">{r.project} · {r.period}</p></div><div className="hidden text-right sm:block"><p className="text-sm font-semibold">{r.hours}</p><p className="muted mt-1 text-xs">{r.amount}</p></div><span className="badge hidden md:inline-flex">{r.status}</span><p className="muted hidden w-28 text-right text-xs lg:block">{r.date}</p><button className="rounded-lg p-2 opacity-0 group-hover:opacity-100"><MoreHorizontal size={17}/></button></Link>)}</div></>}
-export function ReportBuilder(){return <><PageHeader title="Build a report" description="Choose the scope, then generate a polished PDF or shareable view."/><div className="grid gap-5 xl:grid-cols-[340px_1fr]"><aside className="card h-fit p-5"><h2 className="section-title">Filters</h2><div className="mt-5 grid gap-4"><div><label className="label">Date range</label><div className="grid grid-cols-2 gap-2"><input type="date" className="field" defaultValue="2026-08-01"/><input type="date" className="field" defaultValue="2026-08-31"/></div></div><div><label className="label">Projects</label><select className="field"><option>All active projects</option><option>Atlas redesign</option><option>Mobile app</option></select></div><div><label className="label">Members</label><select className="field"><option>All members</option><option>Abdul Wadood</option></select></div><div><label className="label">Billable</label><select className="field"><option>Any</option><option>Billable only</option><option>Non-billable only</option></select></div><div><label className="label">Group by</label><select className="field"><option>Project</option><option>Member</option><option>Week</option><option>Day</option></select></div><label className="flex items-center gap-2 text-xs"><input type="checkbox" defaultChecked className="size-4 accent-[var(--accent)]"/>Include detailed time entries</label><button className="btn btn-primary"><FileBarChart size={15}/>Generate report</button></div></aside><ReportPreview/></div></>}
-function ReportPreview(){return <section className="card overflow-hidden"><div className="flex items-center justify-between border-b border-[var(--border)] p-4"><div><p className="text-sm font-bold">Report preview</p><p className="muted mt-1 text-xs">August 1 – 31, 2026</p></div><div className="flex gap-2"><button className="btn"><Share2 size={14}/>Share</button><button className="btn btn-primary"><Download size={14}/>Export PDF</button></div></div><div className="bg-[#ececf0] p-4 md:p-8"><div className="mx-auto min-h-[720px] max-w-[760px] bg-white p-7 text-[#1b1b20] shadow-lg md:p-10"><div className="flex items-start justify-between border-b border-[#e7e7ea] pb-7"><div><div className="mb-5 flex items-center gap-2"><span className="grid size-7 place-items-center rounded-lg bg-[#6558d3] text-white">T</span><b>tempo</b></div><h2 className="text-2xl font-bold">August utilization</h2><p className="mt-2 text-sm text-[#70707c]">Northstar Studio · August 1–31, 2026</p></div><span className="rounded bg-[#f2f1ff] px-2 py-1 text-xs font-bold text-[#6558d3]">TIME REPORT</span></div><div className="grid grid-cols-3 gap-4 border-b border-[#e7e7ea] py-7"><div><p className="text-xs text-[#70707c]">Total hours</p><b className="mt-2 block text-xl">126h 18m</b></div><div><p className="text-xs text-[#70707c]">Billable</p><b className="mt-2 block text-xl">104h 52m</b></div><div><p className="text-xs text-[#70707c]">Amount</p><b className="mt-2 block text-xl">$10,482.50</b></div></div><h3 className="mt-7 text-sm font-bold">Hours by project</h3><div className="mt-4 space-y-4">{[["Atlas redesign","54h 24m",72],["Mobile app","43h 09m",57],["Brand system","28h 45m",38]].map(([n,h,w])=><div key={n as string}><div className="mb-1.5 flex justify-between text-xs"><span>{n}</span><b>{h}</b></div><div className="h-2 rounded bg-[#f0f0f2]"><div className="h-full rounded bg-[#6558d3]" style={{width:`${w}%`}}/></div></div>)}</div><div className="mt-8 overflow-hidden rounded-lg border border-[#e7e7ea]"><table className="w-full text-left text-xs"><thead className="bg-[#f7f7f8] text-[#70707c]"><tr>{["Project","Member","Hours","Amount"].map(h=><th key={h} className="px-3 py-2.5">{h}</th>)}</tr></thead><tbody>{[["Atlas redesign","Abdul Wadood","38h 42m","$3,676"],["Mobile app","Maya Chen","34h 18m","$3,773"],["Brand system","Jon Bell","28h 45m","$2,444"]].map(row=><tr key={row[0]} className="border-t border-[#e7e7ea]">{row.map((x,i)=><td key={x} className={`px-3 py-3 ${i===0?"font-semibold":""}`}>{x}</td>)}</tr>)}</tbody></table></div><p className="mt-10 text-center text-[10px] text-[#999]">Generated by Tempo · August 6, 2026 at 4:28 PM · Page 1 of 1</p></div></div></section>}
-export function ReportDetail(){return <><PageHeader title="August utilization" description="Generated today at 4:28 PM" actions={<><button className="btn"><Share2 size={14}/>Share report</button><button className="btn btn-primary"><Download size={14}/>Download PDF</button></>}/><ReportPreview/></>}
-export function SharedReports(){return <><PageHeader title="Shared reports" description="Manage public links and control access to published reports."/><div className="card overflow-hidden">{reports.slice(0,2).map((r,i)=><div key={r.id} className="flex items-center gap-3 border-b border-[var(--border)] p-4 last:border-0"><span className="grid size-9 place-items-center rounded-lg bg-[var(--accent-soft)] text-[var(--accent)]"><Share2 size={16}/></span><div className="min-w-0 flex-1"><b className="block truncate text-sm">{r.title}</b><p className="muted mt-1 truncate text-xs">clockify.abdulwadood.com/shared/reports/{i?"lum-3z8k…":"aug-7px2…"}</p></div><span className="badge">Active</span><button className="btn"><ExternalLink size={14}/>Open</button></div>)}</div></>}
+import Link from "next/link";
+import {
+  Download,
+  ExternalLink,
+  FileBarChart,
+  FileText,
+  MoreHorizontal,
+  Plus,
+  Search,
+  Share2,
+} from "lucide-react";
+import { PageHeader } from "@/components/ui/page-header";
+const reports = [
+  {
+    id: "august-utilization",
+    title: "August utilization",
+    period: "Aug 1 – Aug 31, 2026",
+    project: "All projects",
+    hours: "126h 18m",
+    amount: "$10,482.50",
+    status: "Ready",
+    date: "Today, 4:28 PM",
+  },
+  {
+    id: "atlas-weekly",
+    title: "Atlas weekly summary",
+    period: "Aug 3 – Aug 9, 2026",
+    project: "Atlas redesign",
+    hours: "31h 24m",
+    amount: "$2,481.75",
+    status: "Ready",
+    date: "Today, 2:04 PM",
+  },
+  {
+    id: "luma-july",
+    title: "Luma Health — July",
+    period: "Jul 1 – Jul 31, 2026",
+    project: "Mobile app",
+    hours: "84h 42m",
+    amount: "$8,736.50",
+    status: "Ready",
+    date: "Aug 1, 10:12 AM",
+  },
+];
+export function ReportsView() {
+  return (
+    <>
+      <PageHeader
+        title="Reports"
+        description="Turn your time data into clear, shareable insight."
+        actions={
+          <Link href="/reports/new" className="btn btn-primary">
+            <Plus size={15} />
+            New report
+          </Link>
+        }
+      />
+      <div className="mb-5 grid gap-4 sm:grid-cols-3">
+        <div className="card p-5">
+          <p className="muted text-xs">Total hours · August</p>
+          <p className="mt-2 text-2xl font-bold">126h 18m</p>
+          <p className="mt-2 text-xs text-emerald-600">↑ 8.4% from July</p>
+        </div>
+        <div className="card p-5">
+          <p className="muted text-xs">Billable amount</p>
+          <p className="mt-2 text-2xl font-bold">$10,482.50</p>
+          <p className="muted mt-2 text-xs">83% billable utilization</p>
+        </div>
+        <div className="card p-5">
+          <p className="muted text-xs">Generated reports</p>
+          <p className="mt-2 text-2xl font-bold">12</p>
+          <p className="muted mt-2 text-xs">3 public share links</p>
+        </div>
+      </div>
+      <div className="card overflow-hidden">
+        <div className="flex items-center gap-3 border-b border-[var(--border)] p-4">
+          <Search size={16} className="muted" />
+          <input
+            className="min-w-0 flex-1 bg-transparent text-sm outline-none"
+            placeholder="Search reports…"
+          />
+          <button className="btn">All reports</button>
+        </div>
+        {reports.map((r) => (
+          <Link
+            href={`/reports/${r.id}`}
+            key={r.id}
+            className="group flex items-center gap-4 border-b border-[var(--border)] p-4 last:border-0 hover:bg-[var(--surface-2)] md:px-5"
+          >
+            <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-[var(--accent-soft)] text-[var(--accent)]">
+              <FileText size={18} />
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm font-bold">{r.title}</p>
+              <p className="muted mt-1 truncate text-xs">
+                {r.project} · {r.period}
+              </p>
+            </div>
+            <div className="hidden text-right sm:block">
+              <p className="text-sm font-semibold">{r.hours}</p>
+              <p className="muted mt-1 text-xs">{r.amount}</p>
+            </div>
+            <span className="badge hidden md:inline-flex">{r.status}</span>
+            <p className="muted hidden w-28 text-right text-xs lg:block">
+              {r.date}
+            </p>
+            <button className="rounded-lg p-2 opacity-0 group-hover:opacity-100">
+              <MoreHorizontal size={17} />
+            </button>
+          </Link>
+        ))}
+      </div>
+    </>
+  );
+}
+export function ReportBuilder() {
+  return (
+    <>
+      <PageHeader
+        title="Build a report"
+        description="Choose the scope, then generate a polished PDF or shareable view."
+      />
+      <div className="grid gap-5 xl:grid-cols-[340px_1fr]">
+        <aside className="card h-fit p-5">
+          <h2 className="section-title">Filters</h2>
+          <div className="mt-5 grid gap-4">
+            <div>
+              <label className="label">Date range</label>
+              <div className="grid grid-cols-2 gap-2">
+                <input
+                  type="date"
+                  className="field"
+                  defaultValue="2026-08-01"
+                />
+                <input
+                  type="date"
+                  className="field"
+                  defaultValue="2026-08-31"
+                />
+              </div>
+            </div>
+            <div>
+              <label className="label">Projects</label>
+              <select className="field">
+                <option>All active projects</option>
+                <option>Atlas redesign</option>
+                <option>Mobile app</option>
+              </select>
+            </div>
+            <div>
+              <label className="label">Members</label>
+              <select className="field">
+                <option>All members</option>
+                <option>Abdul Wadood</option>
+              </select>
+            </div>
+            <div>
+              <label className="label">Billable</label>
+              <select className="field">
+                <option>Any</option>
+                <option>Billable only</option>
+                <option>Non-billable only</option>
+              </select>
+            </div>
+            <div>
+              <label className="label">Group by</label>
+              <select className="field">
+                <option>Project</option>
+                <option>Member</option>
+                <option>Week</option>
+                <option>Day</option>
+              </select>
+            </div>
+            <label className="flex items-center gap-2 text-xs">
+              <input
+                type="checkbox"
+                defaultChecked
+                className="size-4 accent-[var(--accent)]"
+              />
+              Include detailed time entries
+            </label>
+            <button className="btn btn-primary">
+              <FileBarChart size={15} />
+              Generate report
+            </button>
+          </div>
+        </aside>
+        <ReportPreview />
+      </div>
+    </>
+  );
+}
+function ReportPreview() {
+  return (
+    <section className="card overflow-hidden">
+      <div className="flex items-center justify-between border-b border-[var(--border)] p-4">
+        <div>
+          <p className="text-sm font-bold">Report preview</p>
+          <p className="muted mt-1 text-xs">August 1 – 31, 2026</p>
+        </div>
+        <div className="flex gap-2">
+          <button className="btn">
+            <Share2 size={14} />
+            Share
+          </button>
+          <button className="btn btn-primary">
+            <Download size={14} />
+            Export PDF
+          </button>
+        </div>
+      </div>
+      <div className="bg-[#ececf0] p-4 md:p-8">
+        <div className="mx-auto min-h-[720px] max-w-[760px] bg-white p-7 text-[#1b1b20] shadow-lg md:p-10">
+          <div className="flex items-start justify-between border-b border-[#e7e7ea] pb-7">
+            <div>
+              <div className="mb-5 flex items-center gap-2">
+                <span className="grid size-7 place-items-center rounded-lg bg-[#6558d3] text-white">
+                  T
+                </span>
+                <b>Tracker</b>
+              </div>
+              <h2 className="text-2xl font-bold">August utilization</h2>
+              <p className="mt-2 text-sm text-[#70707c]">
+                Northstar Studio · August 1–31, 2026
+              </p>
+            </div>
+            <span className="rounded bg-[#f2f1ff] px-2 py-1 text-xs font-bold text-[#6558d3]">
+              TIME REPORT
+            </span>
+          </div>
+          <div className="grid grid-cols-3 gap-4 border-b border-[#e7e7ea] py-7">
+            <div>
+              <p className="text-xs text-[#70707c]">Total hours</p>
+              <b className="mt-2 block text-xl">126h 18m</b>
+            </div>
+            <div>
+              <p className="text-xs text-[#70707c]">Billable</p>
+              <b className="mt-2 block text-xl">104h 52m</b>
+            </div>
+            <div>
+              <p className="text-xs text-[#70707c]">Amount</p>
+              <b className="mt-2 block text-xl">$10,482.50</b>
+            </div>
+          </div>
+          <h3 className="mt-7 text-sm font-bold">Hours by project</h3>
+          <div className="mt-4 space-y-4">
+            {[
+              ["Atlas redesign", "54h 24m", 72],
+              ["Mobile app", "43h 09m", 57],
+              ["Brand system", "28h 45m", 38],
+            ].map(([n, h, w]) => (
+              <div key={n as string}>
+                <div className="mb-1.5 flex justify-between text-xs">
+                  <span>{n}</span>
+                  <b>{h}</b>
+                </div>
+                <div className="h-2 rounded bg-[#f0f0f2]">
+                  <div
+                    className="h-full rounded bg-[#6558d3]"
+                    style={{ width: `${w}%` }}
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="mt-8 overflow-hidden rounded-lg border border-[#e7e7ea]">
+            <table className="w-full text-left text-xs">
+              <thead className="bg-[#f7f7f8] text-[#70707c]">
+                <tr>
+                  {["Project", "Member", "Hours", "Amount"].map((h) => (
+                    <th key={h} className="px-3 py-2.5">
+                      {h}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {[
+                  ["Atlas redesign", "Abdul Wadood", "38h 42m", "$3,676"],
+                  ["Mobile app", "Maya Chen", "34h 18m", "$3,773"],
+                  ["Brand system", "Jon Bell", "28h 45m", "$2,444"],
+                ].map((row) => (
+                  <tr key={row[0]} className="border-t border-[#e7e7ea]">
+                    {row.map((x, i) => (
+                      <td
+                        key={x}
+                        className={`px-3 py-3 ${i === 0 ? "font-semibold" : ""}`}
+                      >
+                        {x}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <p className="mt-10 text-center text-[10px] text-[#999]">
+            Generated by Tracker · August 6, 2026 at 4:28 PM · Page 1 of 1
+          </p>
+        </div>
+      </div>
+    </section>
+  );
+}
+export function ReportDetail() {
+  return (
+    <>
+      <PageHeader
+        title="August utilization"
+        description="Generated today at 4:28 PM"
+        actions={
+          <>
+            <button className="btn">
+              <Share2 size={14} />
+              Share report
+            </button>
+            <button className="btn btn-primary">
+              <Download size={14} />
+              Download PDF
+            </button>
+          </>
+        }
+      />
+      <ReportPreview />
+    </>
+  );
+}
+export function SharedReports() {
+  return (
+    <>
+      <PageHeader
+        title="Shared reports"
+        description="Manage public links and control access to published reports."
+      />
+      <div className="card overflow-hidden">
+        {reports.slice(0, 2).map((r, i) => (
+          <div
+            key={r.id}
+            className="flex items-center gap-3 border-b border-[var(--border)] p-4 last:border-0"
+          >
+            <span className="grid size-9 place-items-center rounded-lg bg-[var(--accent-soft)] text-[var(--accent)]">
+              <Share2 size={16} />
+            </span>
+            <div className="min-w-0 flex-1">
+              <b className="block truncate text-sm">{r.title}</b>
+              <p className="muted mt-1 truncate text-xs">
+                tracker.abdulwadood.com/shared/reports/
+                {i ? "lum-3z8k…" : "aug-7px2…"}
+              </p>
+            </div>
+            <span className="badge">Active</span>
+            <button className="btn">
+              <ExternalLink size={14} />
+              Open
+            </button>
+          </div>
+        ))}
+      </div>
+    </>
+  );
+}

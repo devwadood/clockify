@@ -1,6 +1,6 @@
-# Tempo
+# Tracker
 
-Tempo is a production-oriented time-tracking SaaS built with Next.js 16, TypeScript, Tailwind CSS, Better Auth, Drizzle ORM, and Neon PostgreSQL.
+Tracker is a production-oriented time-tracking SaaS built with Next.js 16, TypeScript, Tailwind CSS, Better Auth, Drizzle ORM, and Neon PostgreSQL.
 
 ## Local development
 
@@ -15,7 +15,7 @@ Without a database connection, authentication forms enter a clearly labelled loc
 
 - `RESEND_API_KEY` and `EMAIL_FROM` enable verification and password-reset emails. Development safely logs an email preview instead.
 - `BLOB_READ_WRITE_TOKEN` is reserved for private generated report files.
-- Set `BETTER_AUTH_URL` and `NEXT_PUBLIC_APP_URL` to `https://clockify.abdulwadood.com` in production.
+- Set `BETTER_AUTH_URL` and `NEXT_PUBLIC_APP_URL` to `https://tracker.abdulwadood.com` in production.
 
 ## Commands
 

@@ -3,8 +3,12 @@ import { Toaster } from "sonner";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: { default: "Tempo — Hours, clearly accounted for", template: "%s · Tempo" },
-  description: "A thoughtful way for modern teams to track time, manage projects, and understand where work goes.",
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL ?? "https://tracker.abdulwadood.com"),
+  title: { default: "Tracker — Make every hour count", template: "%s · Tracker" },
+  description: "Professional time tracking, project collaboration, reporting, and secure sharing for focused teams.",
+  applicationName: "Tracker",
+  openGraph: { title: "Tracker — Make every hour count", description: "Time tracking and project clarity for focused teams.", type: "website", url: "/", siteName: "Tracker" },
+  twitter: { card: "summary_large_image", title: "Tracker — Make every hour count", description: "Time tracking and project clarity for focused teams." },
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
