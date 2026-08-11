@@ -1,11 +1,11 @@
 "use server";
 
-import { and, eq, gt, isNull, lt } from "drizzle-orm";
+import { and, eq, gt, isNull, lt, ne } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { getDb } from "@/db";
-import { projectMembers, projects, timeEntries } from "@/db/schema";
+import { auditLogs, projectMembers, projects, timeEntries } from "@/db/schema";
 import { requireUser } from "@/lib/auth/session";
 
 const inputSchema = z.object({ projectId: z.uuid(), date: z.iso.date(), start: z.string().regex(/^\d{2}:\d{2}$/), end: z.string().regex(/^\d{2}:\d{2}$/), breakMinutes: z.coerce.number().int().min(0).max(600), description: z.string().trim().min(1).max(240), billable: z.boolean() });
@@ -28,4 +28,47 @@ export async function createTimeEntry(formData: FormData) {
   await db.insert(timeEntries).values({ projectId: input.projectId, userId: user.id, workDate: input.date, startedAt, endedAt, breakMinutes: input.breakMinutes, durationMinutes, description: input.description, billable: input.billable, status: membership.approvalRequired ? "draft" : "approved" });
   revalidatePath("/dashboard"); revalidatePath("/timer"); revalidatePath("/timesheets");
   redirect("/dashboard");
+}
+
+const editInputSchema = inputSchema.extend({ entryId: z.uuid() });
+
+export async function updateTimeEntry(formData: FormData) {
+  const current = await requireUser();
+  const parsed = editInputSchema.safeParse({
+    entryId: formData.get("entryId"), projectId: formData.get("projectId"), date: formData.get("date"),
+    start: formData.get("start"), end: formData.get("end"), breakMinutes: formData.get("breakMinutes") || 0,
+    description: formData.get("description"), billable: formData.get("billable") === "on",
+  });
+  if (!parsed.success) throw new Error(parsed.error.issues[0]?.message ?? "Invalid time entry");
+  const input = parsed.data;
+  const startedAt = new Date(`${input.date}T${input.start}:00Z`);
+  const endedAt = new Date(`${input.date}T${input.end}:00Z`);
+  const elapsed = Math.round((endedAt.getTime() - startedAt.getTime()) / 60000);
+  const durationMinutes = elapsed - input.breakMinutes;
+  if (elapsed <= 0 || elapsed > 1440) throw new Error("End time must be after start time");
+  if (durationMinutes <= 0) throw new Error("Break must be shorter than the working duration");
+
+  const db = getDb();
+  const [existing] = await db.select({ userId: timeEntries.userId, projectId: timeEntries.projectId })
+    .from(timeEntries).where(and(eq(timeEntries.id, input.entryId), isNull(timeEntries.deletedAt))).limit(1);
+  if (!existing) throw new Error("Time entry not found");
+  const [membership] = await db.select({ role: projectMembers.role, status: projects.status, approvalRequired: projects.approvalRequired })
+    .from(projectMembers).innerJoin(projects, eq(projects.id, projectMembers.projectId))
+    .where(and(eq(projectMembers.projectId, input.projectId), eq(projectMembers.userId, current.id), isNull(projectMembers.revokedAt), isNull(projects.deletedAt))).limit(1);
+  if (!membership) throw new Error("You do not have access to this project");
+  if (membership.status !== "active") throw new Error("This project does not accept edited time entries");
+  const editingOwnEntry = existing.userId === current.id;
+  if (!editingOwnEntry && membership.role === "member") throw new Error("You cannot edit this time entry");
+  const overlap = await db.select({ id: timeEntries.id }).from(timeEntries).where(and(
+    eq(timeEntries.userId, existing.userId), ne(timeEntries.id, input.entryId), isNull(timeEntries.deletedAt),
+    lt(timeEntries.startedAt, endedAt), gt(timeEntries.endedAt, startedAt),
+  )).limit(1);
+  if (overlap.length) throw new Error("This entry overlaps with existing time");
+  await db.update(timeEntries).set({
+    projectId: input.projectId, workDate: input.date, startedAt, endedAt, breakMinutes: input.breakMinutes,
+    durationMinutes, description: input.description, billable: input.billable,
+    status: membership.approvalRequired ? "draft" : "approved", updatedAt: new Date(),
+  }).where(eq(timeEntries.id, input.entryId));
+  await db.insert(auditLogs).values({ actorId: current.id, action: "time-entry.updated", targetType: "time-entry", targetId: input.entryId, projectId: input.projectId, metadata: { editingOwnEntry } });
+  revalidatePath("/dashboard"); revalidatePath("/timer"); revalidatePath("/timesheets");
 }

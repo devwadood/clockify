@@ -94,7 +94,7 @@ export const timeEntries = pgTable("time_entries", {
   rejectionReason: text("rejection_reason"), deletedAt: timestamp("deleted_at", { withTimezone: true }), createdAt: createdAt(), updatedAt: updatedAt(),
 }, (t) => [
   index("entries_user_date_idx").on(t.userId, t.workDate), index("entries_project_date_idx").on(t.projectId, t.workDate), index("entries_status_idx").on(t.status),
-  check("entry_duration_positive", sql`${t.durationMinutes} > 0 and ${t.durationMinutes} <= 1440`), check("entry_break_valid", sql`${t.breakMinutes} >= 0 and ${t.breakMinutes} < ${t.durationMinutes}`),
+  check("entry_duration_positive", sql`${t.durationMinutes} > 0 and ${t.durationMinutes} <= 1440`), check("entry_break_valid", sql`${t.breakMinutes} >= 0`),
 ]);
 
 export const activeTimers = pgTable("active_timers", {
