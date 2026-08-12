@@ -1,9 +1,13 @@
 "use client";
 
-import { Clock3, Save } from "lucide-react";
+import { useActionState, useEffect } from "react";
+import { AlertCircle, Clock3, LoaderCircle, Save } from "lucide-react";
 import Link from "next/link";
 import { PageHeader } from "@/components/ui/page-header";
-import { createTimeEntry } from "@/server/actions/time-entries";
+import {
+  createTimeEntry,
+  type TimeEntryActionState,
+} from "@/server/actions/time-entries";
 import { formatDuration } from "@/lib/utils";
 import { parseClockTime } from "@/lib/time/clock";
 import { toast } from "sonner";
@@ -32,9 +36,21 @@ export function TimerView({
   projects: Project[];
   entries: Entry[];
 }) {
+  const [state, formAction, pending] = useActionState<
+    TimeEntryActionState,
+    FormData
+  >(createTimeEntry, {});
   const now = new Date();
   const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
   const total = entries.reduce((sum, entry) => sum + entry.durationMinutes, 0);
+  useEffect(() => {
+    if (!state.error) return;
+    const occupied = state.occupied?.map((entry) => entry.time).join(", ");
+    toast.error(state.error, {
+      description: occupied ? `Already recorded: ${occupied}` : undefined,
+      duration: 8000,
+    });
+  }, [state]);
   function validateEntry(event: React.FormEvent<HTMLFormElement>) {
     const data = new FormData(event.currentTarget);
     const start = parseClockTime(String(data.get("start") ?? ""));
@@ -51,7 +67,11 @@ export function TimerView({
       toast.error("End time must be later than start time");
       return;
     }
-    if (!Number.isFinite(breakMinutes) || breakMinutes < 0 || breakMinutes >= elapsed) {
+    if (
+      !Number.isFinite(breakMinutes) ||
+      breakMinutes < 0 ||
+      breakMinutes >= elapsed
+    ) {
       event.preventDefault();
       toast.error("Break must be shorter than the working duration");
     }
@@ -87,7 +107,11 @@ export function TimerView({
         description="Record real work against one of your active projects."
       />
       <div className="grid gap-5 xl:grid-cols-[1.2fr_.8fr]">
-        <form action={createTimeEntry} onSubmit={validateEntry} className="card overflow-hidden">
+        <form
+          action={formAction}
+          onSubmit={validateEntry}
+          className="card overflow-hidden"
+        >
           <div className="border-b border-[var(--border)] p-5">
             <h2 className="section-title">New time entry</h2>
             <p className="muted mt-1 text-xs">
@@ -172,11 +196,59 @@ export function TimerView({
               />
               Billable time
             </label>
+            {state.error && (
+              <div
+                role="alert"
+                className="rounded-xl border border-red-500/25 bg-red-500/[.07] p-4"
+              >
+                <div className="flex gap-3">
+                  <AlertCircle
+                    size={18}
+                    className="mt-0.5 shrink-0 text-red-500"
+                  />
+                  <div>
+                    <p className="text-sm font-bold text-red-600 dark:text-red-400">
+                      {state.error}
+                    </p>
+                    {state.occupied?.length ? (
+                      <>
+                        <p className="muted mt-1 text-xs">
+                          Already consumed hours on the selected day:
+                        </p>
+                        <div className="mt-3 grid gap-2">
+                          {state.occupied.map((entry, index) => (
+                            <div
+                              key={`${entry.time}-${index}`}
+                              className="flex items-center gap-3 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-xs"
+                            >
+                              <b className="shrink-0">{entry.time}</b>
+                              <span className="muted min-w-0 flex-1 truncate">
+                                {entry.description}
+                              </span>
+                              <span className="muted shrink-0">
+                                {formatDuration(entry.durationMinutes)}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </>
+                    ) : null}
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
           <div className="flex justify-end border-t border-[var(--border)] bg-[var(--surface-2)] p-4">
-            <button className="btn btn-primary">
-              <Save size={15} />
-              Save time entry
+            <button
+              disabled={pending}
+              className="btn btn-primary disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {pending ? (
+                <LoaderCircle size={15} className="animate-spin" />
+              ) : (
+                <Save size={15} />
+              )}
+              {pending ? "Saving…" : "Save time entry"}
             </button>
           </div>
         </form>

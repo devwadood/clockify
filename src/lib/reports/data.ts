@@ -1,6 +1,6 @@
 import "server-only";
 
-import { and, eq, gte, isNull, lte } from "drizzle-orm";
+import { and, eq, gte, inArray, isNull, lte, or } from "drizzle-orm";
 import { getDb } from "@/db";
 import {
   projectMembers,
@@ -11,7 +11,14 @@ import {
   user,
 } from "@/db/schema";
 
-type Filters = { from?: string; to?: string; billable?: "any" | "yes" | "no" };
+type Filters = {
+  from?: string;
+  to?: string;
+  billable?: "any" | "yes" | "no";
+  scope?: "organization" | "selected";
+  projectIds?: string[];
+  excludedProjectIds?: string[];
+};
 
 export async function getReportData(reportId: string, creatorId?: string) {
   const db = getDb();
@@ -42,27 +49,51 @@ export async function getReportData(reportId: string, creatorId?: string) {
     .where(eq(reportFilters.reportId, reportId))
     .limit(1);
   const filters = (filterRow?.filters ?? {}) as Filters;
-  let canSeeProjectTeam = false;
-  if (report.projectId) {
-    const [membership] = await db
-      .select({ role: projectMembers.role })
-      .from(projectMembers)
-      .where(
-        and(
-          eq(projectMembers.projectId, report.projectId),
-          eq(projectMembers.userId, report.creatorId),
-          isNull(projectMembers.revokedAt),
-        ),
-      )
-      .limit(1);
-    canSeeProjectTeam =
-      membership?.role === "owner" || membership?.role === "admin";
-  }
+  const configuredProjectIds = filters.projectIds?.length
+    ? filters.projectIds
+    : report.projectId
+      ? [report.projectId]
+      : null;
+  const memberships = await db
+    .select({ projectId: projectMembers.projectId, role: projectMembers.role })
+    .from(projectMembers)
+    .where(
+      and(
+        eq(projectMembers.userId, report.creatorId),
+        configuredProjectIds
+          ? inArray(projectMembers.projectId, configuredProjectIds)
+          : undefined,
+        isNull(projectMembers.revokedAt),
+      ),
+    );
+  const selectedProjectIds =
+    configuredProjectIds ?? memberships.map((item) => item.projectId);
+  const legacyOwnOnly = !filters.scope && !report.projectId;
+  const teamProjectIds = memberships
+    .filter(
+      (item) =>
+        !legacyOwnOnly && (item.role === "owner" || item.role === "admin"),
+    )
+    .map((item) => item.projectId);
+  const ownOnlyProjectIds = memberships
+    .filter((item) => legacyOwnOnly || item.role === "member")
+    .map((item) => item.projectId);
+  const visibility = [];
+  if (teamProjectIds.length)
+    visibility.push(inArray(timeEntries.projectId, teamProjectIds));
+  if (ownOnlyProjectIds.length)
+    visibility.push(
+      and(
+        inArray(timeEntries.projectId, ownOnlyProjectIds),
+        eq(timeEntries.userId, report.creatorId),
+      )!,
+    );
   const conditions = [isNull(timeEntries.deletedAt)];
-  if (report.projectId)
-    conditions.push(eq(timeEntries.projectId, report.projectId));
-  if (!report.projectId || !canSeeProjectTeam)
-    conditions.push(eq(timeEntries.userId, report.creatorId));
+  conditions.push(
+    selectedProjectIds.length && visibility.length
+      ? or(...visibility)!
+      : eq(timeEntries.id, "00000000-0000-0000-0000-000000000000"),
+  );
   if (filters.from) conditions.push(gte(timeEntries.workDate, filters.from));
   if (filters.to) conditions.push(lte(timeEntries.workDate, filters.to));
   if (filters.billable === "yes")
@@ -107,8 +138,22 @@ export async function getReportData(reportId: string, creatorId?: string) {
         : 0),
     0,
   );
+  const amounts = entries.reduce<Record<string, number>>((totals, entry) => {
+    if (entry.billable)
+      totals[entry.currency] =
+        (totals[entry.currency] ?? 0) +
+        (entry.durationMinutes / 60) * Number(entry.hourlyRate ?? 0);
+    return totals;
+  }, {});
+  const projectNames = [...new Set(entries.map((entry) => entry.project))];
+  const scopeLabel =
+    filters.scope === "organization"
+      ? "Organization"
+      : projectNames.length === 1
+        ? projectNames[0]
+        : `${selectedProjectIds.length} projects`;
   return {
-    report,
+    report: { ...report, projectName: report.projectName ?? scopeLabel },
     filters,
     entries,
     summary: {
@@ -116,6 +161,7 @@ export async function getReportData(reportId: string, creatorId?: string) {
       billableMinutes,
       nonBillableMinutes: totalMinutes - billableMinutes,
       amount,
+      amounts,
     },
   };
 }

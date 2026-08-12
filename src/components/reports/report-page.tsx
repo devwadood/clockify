@@ -12,6 +12,16 @@ export async function ReportPage({ reportId }: { reportId: string }) {
   const data = await getReportData(reportId, current.id);
   if (!data) notFound();
   const currency = data.report.currency ?? data.entries[0]?.currency ?? "USD";
+  const amountLabel = Object.entries(data.summary.amounts).length
+    ? Object.entries(data.summary.amounts)
+        .map(([code, value]) =>
+          new Intl.NumberFormat("en", {
+            style: "currency",
+            currency: code,
+          }).format(value),
+        )
+        .join(" · ")
+    : new Intl.NumberFormat("en", { style: "currency", currency }).format(0);
   return (
     <>
       <PageHeader
@@ -40,13 +50,7 @@ export async function ReportPage({ reportId }: { reportId: string }) {
           label="Non-billable"
           value={formatDuration(data.summary.nonBillableMinutes)}
         />
-        <Stat
-          label="Amount"
-          value={new Intl.NumberFormat("en", {
-            style: "currency",
-            currency,
-          }).format(data.summary.amount)}
-        />
+        <Stat label="Amount" value={amountLabel} />
       </div>
       <section className="card mb-5 p-5">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-end">

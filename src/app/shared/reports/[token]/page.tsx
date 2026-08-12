@@ -49,6 +49,16 @@ export default async function SharedReport({
     })
     .where(eq(publicReportLinks.id, link.id));
   const currency = data.report.currency ?? data.entries[0]?.currency ?? "USD";
+  const amountLabel = Object.entries(data.summary.amounts).length
+    ? Object.entries(data.summary.amounts)
+        .map(([code, value]) =>
+          new Intl.NumberFormat("en", {
+            style: "currency",
+            currency: code,
+          }).format(value),
+        )
+        .join(" · ")
+    : new Intl.NumberFormat("en", { style: "currency", currency }).format(0);
   return (
     <PublicFrame>
       <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end">
@@ -78,13 +88,7 @@ export default async function SharedReport({
             ["Total hours", formatDuration(data.summary.totalMinutes)],
             ["Billable", formatDuration(data.summary.billableMinutes)],
             ["Non-billable", formatDuration(data.summary.nonBillableMinutes)],
-            [
-              "Amount",
-              new Intl.NumberFormat("en", {
-                style: "currency",
-                currency,
-              }).format(data.summary.amount),
-            ],
+            ["Amount", amountLabel],
           ].map((x) => (
             <div key={x[0]}>
               <p className="muted text-xs">{x[0]}</p>
@@ -135,7 +139,9 @@ function PublicFrame({ children }: { children: React.ReactNode }) {
     <main className="min-h-screen bg-[var(--background)]">
       <header className="border-b border-[var(--border)] bg-[var(--surface)]">
         <div className="mx-auto flex h-16 max-w-5xl items-center px-5">
-          <Link href="/"><BrandLogo /></Link>
+          <Link href="/">
+            <BrandLogo />
+          </Link>
           <span className="muted ml-auto text-xs">Secure shared report</span>
         </div>
       </header>
