@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect } from "react";
+import { useActionState, useEffect, useState } from "react";
 import { AlertCircle, Clock3, LoaderCircle, Save } from "lucide-react";
 import Link from "next/link";
 import { PageHeader } from "@/components/ui/page-header";
@@ -40,6 +40,7 @@ export function TimerView({
     TimeEntryActionState,
     FormData
   >(createTimeEntry, {});
+  const [billable, setBillable] = useState(true);
   const now = new Date();
   const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
   const total = entries.reduce((sum, entry) => sum + entry.durationMinutes, 0);
@@ -191,7 +192,8 @@ export function TimerView({
               <input
                 name="billable"
                 type="checkbox"
-                defaultChecked
+                checked={billable}
+                onChange={(event) => setBillable(event.target.checked)}
                 className="size-4 accent-[var(--accent)]"
               />
               Billable time

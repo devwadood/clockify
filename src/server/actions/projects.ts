@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { and, eq, isNull } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { getDb } from "@/db";
@@ -67,25 +68,87 @@ export async function createProject(formData: FormData) {
       approvalRequired: input.approvalRequired,
     })
     .returning({ id: projects.id });
-  await db
-    .insert(projectMembers)
-    .values({
-      projectId: project.id,
-      userId: user.id,
-      role: "owner",
-      canViewFinancials: true,
-    });
-  await db
-    .insert(auditLogs)
-    .values({
-      actorId: user.id,
-      action: "project.created",
-      targetType: "project",
-      targetId: project.id,
-      projectId: project.id,
-      metadata: { name: input.name },
-    });
+  await db.insert(projectMembers).values({
+    projectId: project.id,
+    userId: user.id,
+    role: "owner",
+    canViewFinancials: true,
+  });
+  await db.insert(auditLogs).values({
+    actorId: user.id,
+    action: "project.created",
+    targetType: "project",
+    targetId: project.id,
+    projectId: project.id,
+    metadata: { name: input.name },
+  });
   revalidatePath("/dashboard");
   revalidatePath("/projects");
   redirect("/dashboard");
+}
+
+const billingInput = z.object({
+  projectId: z.uuid(),
+  currency: z.enum(["USD", "PKR", "INR", "EUR", "GBP", "AED"]),
+  hourlyRate: z.union([
+    z.literal(""),
+    z.string().regex(/^\d{1,10}(?:\.\d{1,2})?$/, "Enter a valid hourly rate"),
+  ]),
+  billable: z.boolean(),
+});
+
+export async function updateProjectBilling(formData: FormData) {
+  const current = await requireUser();
+  const parsed = billingInput.safeParse({
+    projectId: formData.get("projectId"),
+    currency: formData.get("currency"),
+    hourlyRate: String(formData.get("hourlyRate") ?? "").trim(),
+    billable: formData.get("billable") === "on",
+  });
+  if (!parsed.success)
+    throw new Error(
+      parsed.error.issues[0]?.message ?? "Invalid billing settings",
+    );
+  const input = parsed.data;
+  const db = getDb();
+  const [access] = await db
+    .select({ role: projectMembers.role })
+    .from(projectMembers)
+    .where(
+      and(
+        eq(projectMembers.projectId, input.projectId),
+        eq(projectMembers.userId, current.id),
+        isNull(projectMembers.revokedAt),
+      ),
+    )
+    .limit(1);
+  if (!access || (access.role !== "owner" && access.role !== "admin"))
+    throw new Error("You do not have permission to update project billing");
+  const [updated] = await db
+    .update(projects)
+    .set({
+      currency: input.currency,
+      hourlyRate: input.hourlyRate || null,
+      billable: input.billable,
+      updatedAt: new Date(),
+    })
+    .where(and(eq(projects.id, input.projectId), isNull(projects.deletedAt)))
+    .returning({ id: projects.id });
+  if (!updated) throw new Error("Project not found");
+  await db.insert(auditLogs).values({
+    actorId: current.id,
+    action: "project.billing-updated",
+    targetType: "project",
+    targetId: input.projectId,
+    projectId: input.projectId,
+    metadata: {
+      currency: input.currency,
+      hourlyRate: input.hourlyRate || null,
+      billable: input.billable,
+    },
+  });
+  revalidatePath(`/projects/${input.projectId}`);
+  revalidatePath(`/projects/${input.projectId}/settings`);
+  revalidatePath("/timer");
+  revalidatePath("/reports");
 }
