@@ -5,6 +5,7 @@ import { Download, LockKeyhole } from "lucide-react";
 import { getDb } from "@/db";
 import { publicReportLinks } from "@/db/schema";
 import { getReportData } from "@/lib/reports/data";
+import { TRACKER_WEBSITE_LABEL, TRACKER_WEBSITE_URL } from "@/lib/brand";
 import { hashToken } from "@/lib/security/tokens";
 import { formatDuration } from "@/lib/utils";
 import { BrandLogo } from "@/components/brand/logo";
@@ -118,6 +119,17 @@ export default async function SharedReport({
           )}
         </div>
       </div>
+      <p className="muted mt-5 text-center text-xs">
+        Report reference:{" "}
+        <a
+          href={TRACKER_WEBSITE_URL}
+          target="_blank"
+          rel="noreferrer"
+          className="font-semibold text-[var(--accent)] hover:underline"
+        >
+          {TRACKER_WEBSITE_LABEL}
+        </a>
+      </p>
     </PublicFrame>
   );
 }
@@ -139,9 +151,9 @@ function PublicFrame({ children }: { children: React.ReactNode }) {
     <main className="min-h-screen bg-[var(--background)]">
       <header className="border-b border-[var(--border)] bg-[var(--surface)]">
         <div className="mx-auto flex h-16 max-w-5xl items-center px-5">
-          <Link href="/">
+          <a href={TRACKER_WEBSITE_URL} aria-label="Visit Tracker website">
             <BrandLogo />
-          </Link>
+          </a>
           <span className="muted ml-auto text-xs">Secure shared report</span>
         </div>
       </header>

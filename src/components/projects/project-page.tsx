@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { CalendarDays, Check, Palette, Plus, Save } from "lucide-react";
 import { getDb } from "@/db";
 import { projectMembers, projects, timeEntries, user } from "@/db/schema";
+import { ProjectInviteForm } from "@/components/projects/project-invite-form";
 import { requireUser } from "@/lib/auth/session";
 import { formatDuration, initials } from "@/lib/utils";
 import { updateProjectSettings } from "@/server/actions/projects";
@@ -121,6 +122,17 @@ export async function ProjectPage({
       </section>
       {tab === "members" ? (
         <section className="card overflow-hidden">
+          {(project.role === "owner" || project.role === "admin") && (
+            <ProjectInviteForm projectId={project.id} />
+          )}
+          <div className="border-b border-[var(--border)] p-5">
+            <h2 className="section-title">Project users</h2>
+            <p className="muted mt-1 text-xs">
+              {members.length}{" "}
+              {members.length === 1 ? "person has" : "people have"} access to
+              this project.
+            </p>
+          </div>
           {members.map((member) => (
             <div
               key={member.id}

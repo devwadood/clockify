@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Download, Share2 } from "lucide-react";
 import { notFound } from "next/navigation";
 import { requireUser } from "@/lib/auth/session";
+import { TRACKER_WEBSITE_LABEL, TRACKER_WEBSITE_URL } from "@/lib/brand";
 import { getReportData } from "@/lib/reports/data";
 import { formatDuration } from "@/lib/utils";
 import { PageHeader } from "@/components/ui/page-header";
@@ -161,6 +162,17 @@ export async function ReportPage({ reportId }: { reportId: string }) {
           </p>
         )}
       </section>
+      <p className="muted mt-4 text-center text-xs">
+        Report reference:{" "}
+        <a
+          href={TRACKER_WEBSITE_URL}
+          target="_blank"
+          rel="noreferrer"
+          className="font-semibold text-[var(--accent)] hover:underline"
+        >
+          {TRACKER_WEBSITE_LABEL}
+        </a>
+      </p>
     </>
   );
 }

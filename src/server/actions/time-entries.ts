@@ -162,16 +162,19 @@ export async function updateTimeEntry(formData: FormData) {
 
   const db = getDb();
   const [existing] = await db
-    .select({ userId: timeEntries.userId, projectId: timeEntries.projectId })
+    .select({ userId: timeEntries.userId })
     .from(timeEntries)
     .where(
-      and(eq(timeEntries.id, input.entryId), isNull(timeEntries.deletedAt)),
+      and(
+        eq(timeEntries.id, input.entryId),
+        eq(timeEntries.userId, current.id),
+        isNull(timeEntries.deletedAt),
+      ),
     )
     .limit(1);
-  if (!existing) throw new Error("Time entry not found");
+  if (!existing) throw new Error("You can only update your own time entries");
   const [membership] = await db
     .select({
-      role: projectMembers.role,
       status: projects.status,
       approvalRequired: projects.approvalRequired,
       timezone: projects.timezone,
@@ -196,9 +199,6 @@ export async function updateTimeEntry(formData: FormData) {
     membership.timezone,
   );
   const endedAt = projectDateTimeToUtc(input.date, end, membership.timezone);
-  const editingOwnEntry = existing.userId === current.id;
-  if (!editingOwnEntry && membership.role === "member")
-    throw new Error("You cannot edit this time entry");
   const overlap = await db
     .select({ id: timeEntries.id })
     .from(timeEntries)
@@ -227,14 +227,20 @@ export async function updateTimeEntry(formData: FormData) {
       status: membership.approvalRequired ? "draft" : "approved",
       updatedAt: new Date(),
     })
-    .where(eq(timeEntries.id, input.entryId));
+    .where(
+      and(
+        eq(timeEntries.id, input.entryId),
+        eq(timeEntries.userId, current.id),
+        isNull(timeEntries.deletedAt),
+      ),
+    );
   await db.insert(auditLogs).values({
     actorId: current.id,
     action: "time-entry.updated",
     targetType: "time-entry",
     targetId: input.entryId,
     projectId: input.projectId,
-    metadata: { editingOwnEntry },
+    metadata: { editingOwnEntry: true },
   });
   revalidatePath("/dashboard");
   revalidatePath("/timer");
