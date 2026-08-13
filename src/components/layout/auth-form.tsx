@@ -74,7 +74,38 @@ export function AuthForm({ mode }: { mode: Mode }) {
       if (!res.ok) {
         const result = (await res.json().catch(() => null)) as {
           message?: string;
+          code?: string;
         } | null;
+        const existingAccount =
+          mode === "register" &&
+          (res.status === 422 ||
+            result?.code === "USER_ALREADY_EXISTS_USE_ANOTHER_EMAIL" ||
+            /already exists/i.test(result?.message ?? ""));
+        if (existingAccount) {
+          const email = String(data.email).trim().toLowerCase();
+          const resend = await fetch("/api/auth/send-verification-email", {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({ email, callbackURL }),
+          });
+          if (!resend.ok) {
+            const resendResult = (await resend.json().catch(() => null)) as {
+              message?: string;
+            } | null;
+            throw new Error(
+              resendResult?.message ??
+                "We couldn’t resend the verification email. Please try again.",
+            );
+          }
+          toast.success("Check your inbox", {
+            description:
+              "If this account still needs verification, a fresh link has been sent.",
+          });
+          router.push(
+            `/verify-email?email=${encodeURIComponent(email)}&resent=1`,
+          );
+          return;
+        }
         throw new Error(result?.message ?? "We couldn’t complete that request");
       }
       if (mode === "forgot") {
@@ -83,7 +114,9 @@ export function AuthForm({ mode }: { mode: Mode }) {
         toast.success("Password updated");
         router.push("/login");
       } else if (mode === "register") {
-        router.push("/verify-email");
+        router.push(
+          `/verify-email?email=${encodeURIComponent(String(data.email).trim().toLowerCase())}`,
+        );
       } else router.push(callbackURL as never);
       router.refresh();
     } catch (err) {
@@ -95,7 +128,9 @@ export function AuthForm({ mode }: { mode: Mode }) {
   return (
     <div className="w-full max-w-[420px]">
       <div className="mb-8">
-        <Link href="/" className="mb-8 inline-flex"><BrandLogo /></Link>
+        <Link href="/" className="mb-8 inline-flex">
+          <BrandLogo />
+        </Link>
         <h1 className="text-[30px] font-bold tracking-[-.04em]">{title}</h1>
         <p className="muted mt-2 text-sm">{subtitle}</p>
       </div>
@@ -188,11 +223,11 @@ export function AuthForm({ mode }: { mode: Mode }) {
             />
             <span className="muted">
               I agree to the{" "}
-              <Link className="text-[var(--text)] underline" href="#">
+              <Link className="text-[var(--text)] underline" href="/terms">
                 Terms
               </Link>{" "}
               and{" "}
-              <Link className="text-[var(--text)] underline" href="#">
+              <Link className="text-[var(--text)] underline" href="/privacy">
                 Privacy Policy
               </Link>
               .
@@ -231,6 +266,19 @@ export function AuthForm({ mode }: { mode: Mode }) {
           </Link>
         </p>
       )}
+      {(mode === "login" || mode === "register") && (
+        <p className="muted mt-5 text-center text-[11px] leading-5">
+          By using Tracker, you agree to our{" "}
+          <Link href="/terms" className="underline hover:text-[var(--text)]">
+            Terms
+          </Link>{" "}
+          and acknowledge our{" "}
+          <Link href="/privacy" className="underline hover:text-[var(--text)]">
+            Privacy Policy
+          </Link>
+          .
+        </p>
+      )}
       {mode === "forgot" && (
         <Link
           href="/login"
@@ -245,7 +293,9 @@ export function AuthForm({ mode }: { mode: Mode }) {
 export function AuthAside() {
   return (
     <aside className="hidden min-h-screen overflow-hidden bg-[#18171f] p-12 text-white lg:flex lg:flex-col">
-      <Link href="/"><BrandLogo /></Link>
+      <Link href="/">
+        <BrandLogo />
+      </Link>
       <div className="my-auto max-w-lg">
         <p className="text-[34px] leading-[1.18] font-semibold tracking-[-.04em]">
           “Tracker finally gives us an honest picture of where the week
@@ -283,9 +333,42 @@ export function AuthAside() {
 }
 export function VerifyNotice() {
   const params = useSearchParams();
+  const email = params.get("email") ?? "";
+  const [resending, setResending] = useState(false);
+  async function resendVerification() {
+    if (!email) return;
+    setResending(true);
+    try {
+      const response = await fetch("/api/auth/send-verification-email", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ email, callbackURL: "/dashboard" }),
+      });
+      if (!response.ok) {
+        const result = (await response.json().catch(() => null)) as {
+          message?: string;
+        } | null;
+        throw new Error(
+          result?.message ?? "We couldn’t resend the verification email",
+        );
+      }
+      toast.success("Verification email sent", {
+        description:
+          "If the account is awaiting verification, a fresh link is on its way.",
+      });
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Email delivery failed",
+      );
+    } finally {
+      setResending(false);
+    }
+  }
   return (
     <div className="w-full max-w-[420px] text-center">
-      <Link href="/" className="mb-10 inline-flex"><BrandLogo /></Link>
+      <Link href="/" className="mb-10 inline-flex">
+        <BrandLogo />
+      </Link>
       <span className="mx-auto grid size-14 place-items-center rounded-2xl bg-[var(--accent-soft)] text-[var(--accent)]">
         <CheckCircle2 size={25} />
       </span>
@@ -295,11 +378,28 @@ export function VerifyNotice() {
       <p className="muted mx-auto mt-3 max-w-sm text-sm leading-6">
         {params.get("sent") === "reset"
           ? "We sent you a secure password reset link."
-          : "We sent a verification link to your email. Click it to activate your Tracker account."}
+          : params.get("resent") === "1"
+            ? "This account already exists. If it is still unverified, we sent a fresh verification link to the registered email address."
+            : "We sent a verification link to your email. Click it to activate your Tracker account."}
       </p>
       <Link href="/login" className="btn btn-primary mt-7">
         Back to sign in
       </Link>
+      {email && params.get("sent") !== "reset" && (
+        <button
+          type="button"
+          disabled={resending}
+          onClick={resendVerification}
+          className="btn mt-3 w-full disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          {resending ? (
+            <LoaderCircle size={16} className="animate-spin" />
+          ) : (
+            <Mail size={16} />
+          )}
+          {resending ? "Sending…" : "Resend verification email"}
+        </button>
+      )}
     </div>
   );
 }
