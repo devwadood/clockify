@@ -1,4 +1,5 @@
 "use client";
+import { useActionState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -17,6 +18,10 @@ import { toast } from "sonner";
 import { PageHeader } from "@/components/ui/page-header";
 import { team } from "@/lib/demo-data";
 import { cn } from "@/lib/utils";
+import {
+  uploadProfilePhoto,
+  type ProfilePhotoState,
+} from "@/server/actions/profile";
 export function TeamView() {
   return (
     <>
@@ -103,7 +108,7 @@ const settingsNav = [
 export function SettingsView({
   user,
 }: {
-  user: { name: string; email: string };
+  user: { name: string; email: string; image?: string | null };
 }) {
   const path = usePathname();
   const section = path.split("/").at(-1);
@@ -157,28 +162,76 @@ function Save() {
     </button>
   );
 }
-function Profile({ user }: { user: { name: string; email: string } }) {
+const initialPhotoState: ProfilePhotoState = {};
+
+function Profile({
+  user,
+}: {
+  user: { name: string; email: string; image?: string | null };
+}) {
+  const [photoState, photoAction, photoPending] = useActionState(
+    uploadProfilePhoto,
+    initialPhotoState,
+  );
   return (
     <div className="space-y-5">
       <section className="card p-5 md:p-6">
         <h2 className="section-title">Profile details</h2>
         <div className="mt-5 flex flex-col gap-6 sm:flex-row">
-          <div className="relative h-fit">
-            <span className="grid size-20 place-items-center rounded-2xl bg-[#292733] text-xl font-bold text-white">
-              {user.name
-                .split(" ")
-                .map((x) => x[0])
-                .join("")
-                .slice(0, 2)
-                .toUpperCase()}
-            </span>
-            <button
-              aria-label="Change photo"
-              className="absolute -right-2 -bottom-2 grid size-8 place-items-center rounded-full border border-[var(--border)] bg-[var(--surface)] shadow"
-            >
+          <form action={photoAction} className="w-44 shrink-0">
+            <div className="relative h-fit w-fit">
+              <span
+                role="img"
+                aria-label={`${user.name}'s profile photo`}
+                className="grid size-20 place-items-center rounded-2xl bg-[#292733] bg-cover bg-center text-xl font-bold text-white"
+                style={
+                  user.image
+                    ? { backgroundImage: `url(${user.image})` }
+                    : undefined
+                }
+              >
+                {!user.image &&
+                  user.name
+                    .split(" ")
+                    .map((x) => x[0])
+                    .join("")
+                    .slice(0, 2)
+                    .toUpperCase()}
+              </span>
+              <label
+                htmlFor="profile-photo"
+                aria-label="Choose profile photo"
+                className="absolute -right-2 -bottom-2 grid size-8 cursor-pointer place-items-center rounded-full border border-[var(--border)] bg-[var(--surface)] shadow"
+              >
+                <Camera size={14} />
+              </label>
+            </div>
+            <input
+              id="profile-photo"
+              name="photo"
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              required
+              className="mt-4 block w-full text-xs file:mr-2 file:rounded-md file:border-0 file:bg-[var(--surface-2)] file:px-2 file:py-1.5 file:font-semibold"
+            />
+            <button disabled={photoPending} className="btn mt-3 w-full text-xs">
               <Camera size={14} />
+              {photoPending ? "Uploading…" : "Upload photo"}
             </button>
-          </div>
+            <p className="muted mt-2 text-[11px]">
+              JPEG, PNG, or WebP · 2 MB max
+            </p>
+            {photoState.error && (
+              <p role="alert" className="mt-2 text-xs text-red-600">
+                {photoState.error}
+              </p>
+            )}
+            {photoState.success && (
+              <p role="status" className="mt-2 text-xs text-emerald-600">
+                {photoState.success}
+              </p>
+            )}
+          </form>
           <div className="grid flex-1 gap-4">
             <div>
               <label className="label">Full name</label>
