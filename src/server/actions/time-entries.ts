@@ -246,3 +246,34 @@ export async function updateTimeEntry(formData: FormData) {
   revalidatePath("/timer");
   revalidatePath("/timesheets");
 }
+
+export async function deleteTimeEntry(formData: FormData) {
+  const current = await requireUser();
+  const entryId = z.uuid().parse(formData.get("entryId"));
+  const db = getDb();
+  const [deleted] = await db
+    .update(timeEntries)
+    .set({ deletedAt: new Date(), updatedAt: new Date() })
+    .where(
+      and(
+        eq(timeEntries.id, entryId),
+        eq(timeEntries.userId, current.id),
+        isNull(timeEntries.deletedAt),
+      ),
+    )
+    .returning({ id: timeEntries.id, projectId: timeEntries.projectId });
+  if (!deleted) throw new Error("You can only delete your own time entries");
+  await db.insert(auditLogs).values({
+    actorId: current.id,
+    action: "time-entry.deleted",
+    targetType: "time-entry",
+    targetId: deleted.id,
+    projectId: deleted.projectId,
+  });
+  revalidatePath("/dashboard");
+  revalidatePath("/timer");
+  revalidatePath("/timesheets");
+  revalidatePath(`/projects/${deleted.projectId}`);
+  revalidatePath(`/projects/${deleted.projectId}/timesheets`);
+  revalidatePath("/reports");
+}

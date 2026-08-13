@@ -10,6 +10,7 @@ import {
   Search,
 } from "lucide-react";
 import { PageHeader } from "@/components/ui/page-header";
+import { DeleteTimeEntryButton } from "@/components/timesheets/delete-time-entry-button";
 import { formatDuration } from "@/lib/utils";
 import { updateTimeEntry } from "@/server/actions/time-entries";
 import type { TimesheetFilters } from "./timesheet-page";
@@ -401,6 +402,7 @@ export function TimesheetView({
                   <Save size={14} />
                   Save changes
                 </button>
+                <DeleteTimeEntryButton />
               </form>
             </details>
           ))}

@@ -1,13 +1,28 @@
 import Link from "next/link";
 import { and, desc, eq, isNull } from "drizzle-orm";
 import { notFound } from "next/navigation";
-import { CalendarDays, Check, Palette, Plus, Save } from "lucide-react";
+import {
+  CalendarDays,
+  Check,
+  LogOut,
+  Palette,
+  Plus,
+  Save,
+  Trash2,
+  UserMinus,
+} from "lucide-react";
 import { getDb } from "@/db";
 import { projectMembers, projects, timeEntries, user } from "@/db/schema";
 import { ProjectInviteForm } from "@/components/projects/project-invite-form";
+import { ConfirmSubmitButton } from "@/components/ui/confirm-submit-button";
 import { requireUser } from "@/lib/auth/session";
 import { formatDuration, initials } from "@/lib/utils";
-import { updateProjectSettings } from "@/server/actions/projects";
+import {
+  leaveProject,
+  removeProjectMember,
+  updateProjectSettings,
+} from "@/server/actions/projects";
+import { deleteTimeEntry } from "@/server/actions/time-entries";
 import { PROJECT_COLORS } from "@/lib/projects/colors";
 
 export async function ProjectPage({
@@ -49,6 +64,7 @@ export async function ProjectPage({
     db
       .select({
         id: timeEntries.id,
+        userId: timeEntries.userId,
         description: timeEntries.description,
         startedAt: timeEntries.startedAt,
         durationMinutes: timeEntries.durationMinutes,
@@ -146,6 +162,21 @@ export async function ProjectPage({
                 <p className="muted truncate text-xs">{member.email}</p>
               </div>
               <span className="badge capitalize">{member.role}</span>
+              {(project.role === "owner" || project.role === "admin") &&
+                member.role === "member" &&
+                member.id !== current.id && (
+                  <form action={removeProjectMember}>
+                    <input type="hidden" name="projectId" value={project.id} />
+                    <input type="hidden" name="memberId" value={member.id} />
+                    <ConfirmSubmitButton
+                      confirmMessage={`Remove ${member.name} from this project and delete all of their project entries?`}
+                      className="btn text-red-600"
+                    >
+                      <UserMinus size={14} />
+                      Remove
+                    </ConfirmSubmitButton>
+                  </form>
+                )}
             </div>
           ))}
         </section>
@@ -279,6 +310,27 @@ export async function ProjectPage({
             <p className="mt-1 text-sm leading-6">
               {project.description || "No project description has been added."}
             </p>
+            {project.role !== "owner" && (
+              <div className="mt-6 border-t border-[var(--border)] pt-5">
+                <h3 className="text-sm font-bold text-red-600">
+                  Leave project
+                </h3>
+                <p className="muted mt-2 text-xs leading-5">
+                  Your project access and all of your entries in this project
+                  will be removed.
+                </p>
+                <form action={leaveProject} className="mt-4">
+                  <input type="hidden" name="projectId" value={project.id} />
+                  <ConfirmSubmitButton
+                    confirmMessage="Leave this project and delete all of your entries in it?"
+                    className="btn w-full text-red-600"
+                  >
+                    <LogOut size={14} />
+                    Leave project
+                  </ConfirmSubmitButton>
+                </form>
+              </div>
+            )}
           </aside>
         </div>
       ) : (
@@ -318,6 +370,19 @@ export async function ProjectPage({
                 <b className="text-sm">
                   {formatDuration(entry.durationMinutes)}
                 </b>
+                {entry.userId === current.id && (
+                  <form action={deleteTimeEntry}>
+                    <input type="hidden" name="entryId" value={entry.id} />
+                    <ConfirmSubmitButton
+                      confirmMessage="Delete this time entry? This cannot be undone."
+                      className="btn icon-btn text-red-600"
+                      aria-label="Delete time entry"
+                      title="Delete time entry"
+                    >
+                      <Trash2 size={14} />
+                    </ConfirmSubmitButton>
+                  </form>
+                )}
               </div>
             ))
           ) : (

@@ -5,7 +5,13 @@ import { and, eq, isNull } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { getDb } from "@/db";
-import { auditLogs, projectMembers, projects } from "@/db/schema";
+import {
+  activeTimers,
+  auditLogs,
+  projectMembers,
+  projects,
+  timeEntries,
+} from "@/db/schema";
 import { requireUser } from "@/lib/auth/session";
 
 const projectInput = z
@@ -157,4 +163,142 @@ export async function updateProjectSettings(formData: FormData) {
   revalidatePath("/projects");
   revalidatePath("/timer");
   revalidatePath("/reports");
+}
+
+const membershipActionInput = z.object({
+  projectId: z.uuid(),
+  memberId: z.string().min(1).optional(),
+});
+
+function revalidateMembershipViews(projectId: string) {
+  revalidatePath("/dashboard");
+  revalidatePath("/projects");
+  revalidatePath(`/projects/${projectId}`);
+  revalidatePath(`/projects/${projectId}/members`);
+  revalidatePath("/team");
+  revalidatePath("/timer");
+  revalidatePath("/timesheets");
+  revalidatePath("/reports");
+}
+
+async function removeMemberData(projectId: string, memberId: string) {
+  const db = getDb();
+  const removedAt = new Date();
+  await db
+    .update(projectMembers)
+    .set({ revokedAt: removedAt, updatedAt: removedAt })
+    .where(
+      and(
+        eq(projectMembers.projectId, projectId),
+        eq(projectMembers.userId, memberId),
+        isNull(projectMembers.revokedAt),
+      ),
+    );
+  await db
+    .update(timeEntries)
+    .set({ deletedAt: removedAt, updatedAt: removedAt })
+    .where(
+      and(
+        eq(timeEntries.projectId, projectId),
+        eq(timeEntries.userId, memberId),
+        isNull(timeEntries.deletedAt),
+      ),
+    );
+  await db
+    .delete(activeTimers)
+    .where(
+      and(
+        eq(activeTimers.projectId, projectId),
+        eq(activeTimers.userId, memberId),
+      ),
+    );
+}
+
+export async function leaveProject(formData: FormData) {
+  const current = await requireUser();
+  const parsed = membershipActionInput.safeParse({
+    projectId: formData.get("projectId"),
+  });
+  if (!parsed.success) throw new Error("Invalid project");
+  const { projectId } = parsed.data;
+  const db = getDb();
+  const [membership] = await db
+    .select({ role: projectMembers.role })
+    .from(projectMembers)
+    .innerJoin(projects, eq(projects.id, projectMembers.projectId))
+    .where(
+      and(
+        eq(projectMembers.projectId, projectId),
+        eq(projectMembers.userId, current.id),
+        isNull(projectMembers.revokedAt),
+        isNull(projects.deletedAt),
+      ),
+    )
+    .limit(1);
+  if (!membership) throw new Error("You are not an active project member");
+  if (membership.role === "owner")
+    throw new Error("Project owners cannot leave their project");
+  await removeMemberData(projectId, current.id);
+  await db.insert(auditLogs).values({
+    actorId: current.id,
+    action: "member.left",
+    targetType: "project-member",
+    targetId: current.id,
+    projectId,
+    metadata: { deletedOwnEntries: true },
+  });
+  revalidateMembershipViews(projectId);
+  redirect("/projects");
+}
+
+export async function removeProjectMember(formData: FormData) {
+  const current = await requireUser();
+  const parsed = membershipActionInput.safeParse({
+    projectId: formData.get("projectId"),
+    memberId: formData.get("memberId"),
+  });
+  if (!parsed.success || !parsed.data.memberId)
+    throw new Error("Invalid project member");
+  const { projectId, memberId } = parsed.data;
+  if (memberId === current.id) throw new Error("Use Leave project instead");
+  const db = getDb();
+  const [actor] = await db
+    .select({ role: projectMembers.role })
+    .from(projectMembers)
+    .innerJoin(projects, eq(projects.id, projectMembers.projectId))
+    .where(
+      and(
+        eq(projectMembers.projectId, projectId),
+        eq(projectMembers.userId, current.id),
+        isNull(projectMembers.revokedAt),
+        isNull(projects.deletedAt),
+      ),
+    )
+    .limit(1);
+  if (!actor || (actor.role !== "owner" && actor.role !== "admin"))
+    throw new Error("You cannot remove project members");
+  const [target] = await db
+    .select({ role: projectMembers.role })
+    .from(projectMembers)
+    .where(
+      and(
+        eq(projectMembers.projectId, projectId),
+        eq(projectMembers.userId, memberId),
+        isNull(projectMembers.revokedAt),
+      ),
+    )
+    .limit(1);
+  if (!target) throw new Error("Project member not found");
+  if (target.role !== "member")
+    throw new Error("Only members can be removed from a project");
+  await removeMemberData(projectId, memberId);
+  await db.insert(auditLogs).values({
+    actorId: current.id,
+    action: "member.removed",
+    targetType: "project-member",
+    targetId: memberId,
+    projectId,
+    metadata: { deletedMemberEntries: true },
+  });
+  revalidateMembershipViews(projectId);
 }
