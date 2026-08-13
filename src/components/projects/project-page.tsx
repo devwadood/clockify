@@ -1,12 +1,13 @@
 import Link from "next/link";
 import { and, desc, eq, isNull } from "drizzle-orm";
 import { notFound } from "next/navigation";
-import { CalendarDays, DollarSign, Plus, Save } from "lucide-react";
+import { CalendarDays, Check, Palette, Plus, Save } from "lucide-react";
 import { getDb } from "@/db";
 import { projectMembers, projects, timeEntries, user } from "@/db/schema";
 import { requireUser } from "@/lib/auth/session";
 import { formatDuration, initials } from "@/lib/utils";
-import { updateProjectBilling } from "@/server/actions/projects";
+import { updateProjectSettings } from "@/server/actions/projects";
+import { PROJECT_COLORS } from "@/lib/projects/colors";
 
 export async function ProjectPage({
   projectId,
@@ -141,18 +142,51 @@ export async function ProjectPage({
           <section className="card overflow-hidden">
             <div className="border-b border-[var(--border)] p-5">
               <div className="flex items-center gap-2">
-                <DollarSign size={17} className="text-[var(--accent)]" />
-                <h2 className="section-title">Billing settings</h2>
+                <Palette size={17} className="text-[var(--accent)]" />
+                <h2 className="section-title">Project settings</h2>
               </div>
               <p className="muted mt-1 text-xs">
-                Set the default currency, rate, and billing behavior for this
-                project.
+                Choose the project color and configure its default billing
+                details.
               </p>
             </div>
             {project.role === "owner" || project.role === "admin" ? (
-              <form action={updateProjectBilling}>
+              <form action={updateProjectSettings}>
                 <input type="hidden" name="projectId" value={project.id} />
                 <div className="grid gap-5 p-5 sm:grid-cols-2">
+                  <fieldset className="sm:col-span-2">
+                    <legend className="label flex items-center gap-2">
+                      <Palette size={14} />
+                      Project color
+                    </legend>
+                    <div className="flex flex-wrap gap-3">
+                      {PROJECT_COLORS.map((color) => (
+                        <label
+                          key={color}
+                          title={color}
+                          aria-label={`Use ${color} as the project color`}
+                          className="relative grid size-10 cursor-pointer place-items-center rounded-xl transition hover:scale-105 has-[:checked]:scale-105 has-[:checked]:ring-2 has-[:checked]:ring-[var(--text)] has-[:checked]:ring-offset-2 has-[:checked]:ring-offset-[var(--surface)]"
+                          style={{ backgroundColor: color }}
+                        >
+                          <input
+                            type="radio"
+                            name="color"
+                            value={color}
+                            defaultChecked={
+                              project.color.toUpperCase() === color
+                            }
+                            required
+                            className="peer sr-only"
+                          />
+                          <Check
+                            size={17}
+                            strokeWidth={3}
+                            className="text-white opacity-0 peer-checked:opacity-100"
+                          />
+                        </label>
+                      ))}
+                    </div>
+                  </fieldset>
                   <div>
                     <label className="label">Currency</label>
                     <select
@@ -199,14 +233,14 @@ export async function ProjectPage({
                 <div className="flex justify-end border-t border-[var(--border)] bg-[var(--surface-2)] p-4">
                   <button className="btn btn-primary">
                     <Save size={14} />
-                    Save billing settings
+                    Save project settings
                   </button>
                 </div>
               </form>
             ) : (
               <div className="p-5">
                 <p className="muted text-sm">
-                  Only project owners and admins can update billing settings.
+                  Only project owners and admins can update project settings.
                 </p>
                 <dl className="mt-5 grid grid-cols-2 gap-4 text-sm">
                   <div>

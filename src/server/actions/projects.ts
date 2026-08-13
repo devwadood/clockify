@@ -87,8 +87,9 @@ export async function createProject(formData: FormData) {
   redirect("/dashboard");
 }
 
-const billingInput = z.object({
+const projectSettingsInput = z.object({
   projectId: z.uuid(),
+  color: z.string().regex(/^#[0-9A-Fa-f]{6}$/),
   currency: z.enum(["USD", "PKR", "INR", "EUR", "GBP", "AED"]),
   hourlyRate: z.union([
     z.literal(""),
@@ -97,17 +98,18 @@ const billingInput = z.object({
   billable: z.boolean(),
 });
 
-export async function updateProjectBilling(formData: FormData) {
+export async function updateProjectSettings(formData: FormData) {
   const current = await requireUser();
-  const parsed = billingInput.safeParse({
+  const parsed = projectSettingsInput.safeParse({
     projectId: formData.get("projectId"),
+    color: formData.get("color"),
     currency: formData.get("currency"),
     hourlyRate: String(formData.get("hourlyRate") ?? "").trim(),
     billable: formData.get("billable") === "on",
   });
   if (!parsed.success)
     throw new Error(
-      parsed.error.issues[0]?.message ?? "Invalid billing settings",
+      parsed.error.issues[0]?.message ?? "Invalid project settings",
     );
   const input = parsed.data;
   const db = getDb();
@@ -123,13 +125,14 @@ export async function updateProjectBilling(formData: FormData) {
     )
     .limit(1);
   if (!access || (access.role !== "owner" && access.role !== "admin"))
-    throw new Error("You do not have permission to update project billing");
+    throw new Error("You do not have permission to update project settings");
   const [updated] = await db
     .update(projects)
     .set({
       currency: input.currency,
       hourlyRate: input.hourlyRate || null,
       billable: input.billable,
+      color: input.color,
       updatedAt: new Date(),
     })
     .where(and(eq(projects.id, input.projectId), isNull(projects.deletedAt)))
@@ -137,7 +140,7 @@ export async function updateProjectBilling(formData: FormData) {
   if (!updated) throw new Error("Project not found");
   await db.insert(auditLogs).values({
     actorId: current.id,
-    action: "project.billing-updated",
+    action: "project.settings-updated",
     targetType: "project",
     targetId: input.projectId,
     projectId: input.projectId,
@@ -145,10 +148,13 @@ export async function updateProjectBilling(formData: FormData) {
       currency: input.currency,
       hourlyRate: input.hourlyRate || null,
       billable: input.billable,
+      color: input.color,
     },
   });
   revalidatePath(`/projects/${input.projectId}`);
   revalidatePath(`/projects/${input.projectId}/settings`);
+  revalidatePath("/dashboard");
+  revalidatePath("/projects");
   revalidatePath("/timer");
   revalidatePath("/reports");
 }

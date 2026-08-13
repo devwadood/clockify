@@ -5,15 +5,7 @@ import { useRouter } from "next/navigation";
 import { ArrowLeft, Check, ChevronRight } from "lucide-react";
 import { PageHeader } from "@/components/ui/page-header";
 import { createProject } from "@/server/actions/projects";
-
-const colors = [
-  "#6C5CE7",
-  "#0EA5A4",
-  "#2563EB",
-  "#F59E0B",
-  "#EC4899",
-  "#64748B",
-];
+import { PROJECT_COLORS } from "@/lib/projects/colors";
 const currencies = [
   ["USD", "US Dollar"],
   ["PKR", "Pakistani Rupee"],
@@ -25,7 +17,7 @@ const currencies = [
 
 export function ProjectForm() {
   const router = useRouter();
-  const [selectedColor, setSelectedColor] = useState(colors[0]);
+  const [selectedColor, setSelectedColor] = useState<string>(PROJECT_COLORS[0]);
   const today = new Date();
   const localToday = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
   return (
@@ -94,7 +86,7 @@ export function ProjectForm() {
             <fieldset>
               <legend className="label">Project color</legend>
               <div className="flex flex-wrap gap-2">
-                {colors.map((color) => (
+                {PROJECT_COLORS.map((color) => (
                   <label
                     key={color}
                     title={color}
