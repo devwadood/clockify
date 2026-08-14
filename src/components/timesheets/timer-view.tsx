@@ -1,7 +1,15 @@
 "use client";
 
 import { useActionState, useEffect, useState } from "react";
-import { AlertCircle, Clock3, LoaderCircle, Save } from "lucide-react";
+import {
+  AlertCircle,
+  Clock3,
+  LoaderCircle,
+  Play,
+  Save,
+  Square,
+  Trash2,
+} from "lucide-react";
 import Link from "next/link";
 import { PageHeader } from "@/components/ui/page-header";
 import {
@@ -11,6 +19,12 @@ import {
 import { formatDuration } from "@/lib/utils";
 import { parseClockTime } from "@/lib/time/clock";
 import { toast } from "sonner";
+import {
+  discardTimer,
+  startTimer,
+  stopTimer,
+  type TimerActionState,
+} from "@/server/actions/timers";
 
 type Project = {
   id: string;
@@ -28,13 +42,26 @@ type Entry = {
   endedAt: Date;
   durationMinutes: number;
 };
+type ActiveTimer = {
+  id: string;
+  projectId: string;
+  project: string;
+  color: string;
+  description: string | null;
+  status: "running" | "paused";
+  startedAt: Date;
+  pausedAt: Date | null;
+  accumulatedSeconds: number;
+};
 
 export function TimerView({
   projects,
   entries,
+  activeTimer,
 }: {
   projects: Project[];
   entries: Entry[];
+  activeTimer: ActiveTimer | null;
 }) {
   const [state, formAction, pending] = useActionState<
     TimeEntryActionState,
@@ -104,9 +131,10 @@ export function TimerView({
   return (
     <>
       <PageHeader
-        title="Add time"
-        description="Record real work against one of your active projects."
+        title="Time tracker"
+        description="Run a live timer or record completed work manually."
       />
+      <TimerControls projects={projects} activeTimer={activeTimer} />
       <div className="grid gap-5 xl:grid-cols-[1.2fr_.8fr]">
         <form
           action={formAction}
@@ -298,5 +326,179 @@ export function TimerView({
         </aside>
       </div>
     </>
+  );
+}
+
+function TimerControls({
+  projects,
+  activeTimer,
+}: {
+  projects: Project[];
+  activeTimer: ActiveTimer | null;
+}) {
+  return activeTimer ? (
+    <RunningTimer timer={activeTimer} />
+  ) : (
+    <StartTimerForm projects={projects} />
+  );
+}
+
+function StartTimerForm({ projects }: { projects: Project[] }) {
+  const [state, action, pending] = useActionState<TimerActionState, FormData>(
+    startTimer,
+    {},
+  );
+  return (
+    <section className="card mb-5 overflow-hidden border-[color-mix(in_srgb,var(--accent)_30%,var(--border))]">
+      <div className="border-b border-[var(--border)] p-5">
+        <h2 className="section-title flex items-center gap-2">
+          <Play size={16} className="text-[var(--accent)]" />
+          Start a live timer
+        </h2>
+        <p className="muted mt-1 text-xs">
+          Choose the project and describe the task before timing begins.
+        </p>
+      </div>
+      <form
+        action={action}
+        className="grid gap-4 p-5 sm:grid-cols-[minmax(180px,.8fr)_minmax(240px,1.4fr)_auto]"
+      >
+        <div>
+          <label className="label">Project</label>
+          <select name="projectId" required className="field">
+            {projects.map((project) => (
+              <option key={project.id} value={project.id}>
+                {project.name}
+                {project.client ? ` · ${project.client}` : ""}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <label className="label">Task details</label>
+          <input
+            name="description"
+            required
+            minLength={1}
+            maxLength={240}
+            className="field"
+            placeholder="What are you working on?"
+          />
+        </div>
+        <button
+          disabled={pending}
+          className="btn btn-primary self-end disabled:opacity-60"
+        >
+          {pending ? (
+            <LoaderCircle size={15} className="animate-spin" />
+          ) : (
+            <Play size={14} fill="currentColor" />
+          )}
+          {pending ? "Starting…" : "Start timer"}
+        </button>
+        {state.error && (
+          <p role="alert" className="text-sm text-red-600 sm:col-span-3">
+            {state.error}
+          </p>
+        )}
+      </form>
+    </section>
+  );
+}
+
+function RunningTimer({ timer }: { timer: ActiveTimer }) {
+  const [state, action, pending] = useActionState<TimerActionState, FormData>(
+    stopTimer,
+    {},
+  );
+  const [currentTime, setCurrentTime] = useState(() => Date.now());
+  useEffect(() => {
+    if (timer.status !== "running") return;
+    const interval = window.setInterval(() => setCurrentTime(Date.now()), 1000);
+    return () => window.clearInterval(interval);
+  }, [timer.status]);
+  const liveSeconds =
+    timer.status === "running"
+      ? Math.max(
+          0,
+          Math.floor(
+            (currentTime - new Date(timer.startedAt).getTime()) / 1000,
+          ),
+        )
+      : 0;
+  const seconds = timer.accumulatedSeconds + liveSeconds;
+  const hours = Math.floor(seconds / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  const remainingSeconds = seconds % 60;
+  const display = [hours, minutes, remainingSeconds]
+    .map((value) => String(value).padStart(2, "0"))
+    .join(":");
+  return (
+    <section className="card mb-5 overflow-hidden border-[color-mix(in_srgb,#10b981_45%,var(--border))]">
+      <div className="flex flex-col gap-5 p-5 sm:flex-row sm:items-center md:p-6">
+        <span className="timer-dot size-3 shrink-0 rounded-full bg-emerald-500" />
+        <div className="min-w-0 flex-1">
+          <p className="text-xs font-bold tracking-[.08em] text-emerald-600 uppercase">
+            Timer running
+          </p>
+          <h2 className="mt-1 truncate text-lg font-bold">
+            {timer.description || "Timed work"}
+          </h2>
+          <p className="muted mt-1 flex items-center gap-2 text-xs">
+            <span
+              className="size-2 rounded-full"
+              style={{ backgroundColor: timer.color }}
+            />
+            {timer.project} · started{" "}
+            {new Intl.DateTimeFormat("en", {
+              hour: "numeric",
+              minute: "2-digit",
+            }).format(new Date(timer.startedAt))}
+          </p>
+        </div>
+        <output
+          aria-label={`${display} elapsed`}
+          className="font-mono text-3xl font-bold tracking-tight tabular-nums sm:text-4xl"
+        >
+          {display}
+        </output>
+        <form action={action}>
+          <input type="hidden" name="timerId" value={timer.id} />
+          <button
+            disabled={pending}
+            className="btn btn-primary bg-red-600 disabled:opacity-60"
+          >
+            {pending ? (
+              <LoaderCircle size={15} className="animate-spin" />
+            ) : (
+              <Square size={14} fill="currentColor" />
+            )}
+            {pending ? "Saving…" : "Stop & save"}
+          </button>
+        </form>
+        <form action={discardTimer}>
+          <input type="hidden" name="timerId" value={timer.id} />
+          <button
+            aria-label="Discard timer"
+            title="Discard timer"
+            className="btn icon-btn text-red-600"
+            onClick={(event) => {
+              if (!window.confirm("Discard this timer without saving it?"))
+                event.preventDefault();
+            }}
+          >
+            <Trash2 size={15} />
+          </button>
+        </form>
+      </div>
+      {state.error && (
+        <p
+          role="alert"
+          className="border-t border-[var(--border)] bg-red-500/[.06] px-5 py-3 text-sm text-red-600"
+        >
+          {state.error}
+        </p>
+      )}
+    </section>
   );
 }

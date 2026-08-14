@@ -18,6 +18,7 @@ type Filters = {
   scope?: "organization" | "selected";
   projectIds?: string[];
   excludedProjectIds?: string[];
+  groupBy?: "none" | "project";
 };
 
 export async function getReportData(reportId: string, creatorId?: string) {
@@ -103,6 +104,7 @@ export async function getReportData(reportId: string, creatorId?: string) {
   const entries = await db
     .select({
       id: timeEntries.id,
+      projectId: timeEntries.projectId,
       date: timeEntries.workDate,
       description: timeEntries.description,
       startedAt: timeEntries.startedAt,
@@ -152,10 +154,50 @@ export async function getReportData(reportId: string, creatorId?: string) {
       : projectNames.length === 1
         ? projectNames[0]
         : `${selectedProjectIds.length} projects`;
+  const groupedProjects = [
+    ...new Map(
+      entries.map((entry) => [
+        entry.projectId,
+        { projectId: entry.projectId, project: entry.project },
+      ]),
+    ).values(),
+  ];
+  const projectGroups = groupedProjects.map(({ projectId, project }) => {
+    const projectEntries = entries.filter(
+      (entry) => entry.projectId === projectId,
+    );
+    const totalMinutes = projectEntries.reduce(
+      (sum, entry) => sum + entry.durationMinutes,
+      0,
+    );
+    const billableMinutes = projectEntries
+      .filter((entry) => entry.billable)
+      .reduce((sum, entry) => sum + entry.durationMinutes, 0);
+    const amounts = projectEntries.reduce<Record<string, number>>(
+      (totals, entry) => {
+        if (entry.billable)
+          totals[entry.currency] =
+            (totals[entry.currency] ?? 0) +
+            (entry.durationMinutes / 60) * Number(entry.hourlyRate ?? 0);
+        return totals;
+      },
+      {},
+    );
+    return {
+      projectId,
+      project,
+      color: projectEntries[0]?.color ?? "#64748B",
+      entries: projectEntries,
+      totalMinutes,
+      billableMinutes,
+      amounts,
+    };
+  });
   return {
     report: { ...report, projectName: report.projectName ?? scopeLabel },
     filters,
     entries,
+    projectGroups,
     summary: {
       totalMinutes,
       billableMinutes,

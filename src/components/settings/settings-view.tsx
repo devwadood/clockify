@@ -22,6 +22,10 @@ import {
   uploadProfilePhoto,
   type ProfilePhotoState,
 } from "@/server/actions/profile";
+import {
+  updateThemePreference,
+  type ThemePreferenceState,
+} from "@/server/actions/preferences";
 export function TeamView() {
   return (
     <>
@@ -107,8 +111,10 @@ const settingsNav = [
 ] as const;
 export function SettingsView({
   user,
+  theme = "system",
 }: {
   user: { name: string; email: string; image?: string | null };
+  theme?: "system" | "light" | "dark";
 }) {
   const path = usePathname();
   const section = path.split("/").at(-1);
@@ -140,7 +146,7 @@ export function SettingsView({
           {section === "profile" ? (
             <Profile user={user} />
           ) : section === "preferences" ? (
-            <Preferences />
+            <Preferences theme={theme} />
           ) : section === "security" ? (
             <Security />
           ) : (
@@ -173,6 +179,7 @@ function Profile({
     uploadProfilePhoto,
     initialPhotoState,
   );
+  const displayedImage = photoState.imageUrl ?? user.image;
   return (
     <div className="space-y-5">
       <section className="card p-5 md:p-6">
@@ -185,12 +192,12 @@ function Profile({
                 aria-label={`${user.name}'s profile photo`}
                 className="grid size-20 place-items-center rounded-2xl bg-[#292733] bg-cover bg-center text-xl font-bold text-white"
                 style={
-                  user.image
-                    ? { backgroundImage: `url(${user.image})` }
+                  displayedImage
+                    ? { backgroundImage: `url(${displayedImage})` }
                     : undefined
                 }
               >
-                {!user.image &&
+                {!displayedImage &&
                   user.name
                     .split(" ")
                     .map((x) => x[0])
@@ -256,9 +263,15 @@ function Profile({
     </div>
   );
 }
-function Preferences() {
+const initialThemeState: ThemePreferenceState = {};
+
+function Preferences({ theme }: { theme: "system" | "light" | "dark" }) {
+  const [state, action, pending] = useActionState(
+    updateThemePreference,
+    initialThemeState,
+  );
   return (
-    <section className="card p-5 md:p-6">
+    <form action={action} className="card p-5 md:p-6">
       <h2 className="section-title">Regional preferences</h2>
       <div className="mt-5 grid gap-4 sm:grid-cols-2">
         <div className="sm:col-span-2">
@@ -287,17 +300,30 @@ function Preferences() {
         </div>
         <div>
           <label className="label">Theme</label>
-          <select className="field">
-            <option>System</option>
-            <option>Light</option>
-            <option>Dark</option>
+          <select name="theme" defaultValue={theme} className="field">
+            <option value="system">System</option>
+            <option value="light">Light</option>
+            <option value="dark">Dark</option>
           </select>
         </div>
       </div>
       <div className="mt-5">
-        <Save />
+        <button disabled={pending} className="btn btn-primary">
+          <Check size={15} />
+          {pending ? "Saving…" : "Save theme"}
+        </button>
+        {state.error && (
+          <p role="alert" className="mt-3 text-xs text-red-600">
+            {state.error}
+          </p>
+        )}
+        {state.success && (
+          <p role="status" className="mt-3 text-xs text-emerald-600">
+            {state.success}
+          </p>
+        )}
       </div>
-    </section>
+    </form>
   );
 }
 function Security() {

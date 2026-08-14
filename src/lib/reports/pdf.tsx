@@ -48,6 +48,16 @@ const styles = StyleSheet.create({
   description: { width: "29%", paddingHorizontal: 4 },
   hours: { width: "13%", paddingHorizontal: 4, textAlign: "right" },
   amount: { width: "13%", paddingHorizontal: 4, textAlign: "right" },
+  groupHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    backgroundColor: "#eeecff",
+    paddingHorizontal: 6,
+    paddingVertical: 8,
+    marginTop: 4,
+  },
+  groupTitle: { fontWeight: 700, color: "#4f46a5" },
+  groupSubtotal: { fontSize: 8, color: "#555563" },
   footer: {
     position: "absolute",
     bottom: 20,
@@ -76,6 +86,25 @@ export function ReportPdf({ data }: { data: AwaitedReportData }) {
         )
         .join(" · ")
     : new Intl.NumberFormat("en", { style: "currency", currency }).format(0);
+  const entryRow = (entry: AwaitedReportData["entries"][number]) => (
+    <View key={entry.id} style={styles.row} wrap={false}>
+      <Text style={styles.date}>{entry.date}</Text>
+      <Text style={styles.member}>{entry.member}</Text>
+      <Text style={styles.project}>{entry.project}</Text>
+      <Text style={styles.description}>{entry.description}</Text>
+      <Text style={styles.hours}>{formatDuration(entry.durationMinutes)}</Text>
+      <Text style={styles.amount}>
+        {entry.billable
+          ? new Intl.NumberFormat("en", {
+              style: "currency",
+              currency: entry.currency,
+            }).format(
+              (entry.durationMinutes / 60) * Number(entry.hourlyRate ?? 0),
+            )
+          : "—"}
+      </Text>
+    </View>
+  );
   return (
     <Document title={data.report.title} author="Tracker">
       <Page size="A4" style={styles.page} wrap>
@@ -115,28 +144,20 @@ export function ReportPdf({ data }: { data: AwaitedReportData }) {
           <Text style={styles.hours}>Hours</Text>
           <Text style={styles.amount}>Amount</Text>
         </View>
-        {data.entries.map((entry) => (
-          <View key={entry.id} style={styles.row} wrap={false}>
-            <Text style={styles.date}>{entry.date}</Text>
-            <Text style={styles.member}>{entry.member}</Text>
-            <Text style={styles.project}>{entry.project}</Text>
-            <Text style={styles.description}>{entry.description}</Text>
-            <Text style={styles.hours}>
-              {formatDuration(entry.durationMinutes)}
-            </Text>
-            <Text style={styles.amount}>
-              {entry.billable
-                ? new Intl.NumberFormat("en", {
-                    style: "currency",
-                    currency: entry.currency,
-                  }).format(
-                    (entry.durationMinutes / 60) *
-                      Number(entry.hourlyRate ?? 0),
-                  )
-                : "—"}
-            </Text>
-          </View>
-        ))}
+        {data.filters.groupBy === "project"
+          ? data.projectGroups.map((group) => (
+              <View key={group.projectId}>
+                <View style={styles.groupHeader} wrap={false}>
+                  <Text style={styles.groupTitle}>{group.project}</Text>
+                  <Text style={styles.groupSubtotal}>
+                    Subtotal {formatDuration(group.totalMinutes)} · Billable{" "}
+                    {formatDuration(group.billableMinutes)}
+                  </Text>
+                </View>
+                {group.entries.map(entryRow)}
+              </View>
+            ))
+          : data.entries.map(entryRow)}
         <View style={styles.footer} fixed>
           <Link src={TRACKER_WEBSITE_URL} style={styles.websiteLink}>
             Reference: {TRACKER_WEBSITE_LABEL}

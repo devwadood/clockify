@@ -17,6 +17,7 @@ const extensions: Record<string, string> = {
 export type ProfilePhotoState = {
   error?: string;
   success?: string;
+  imageUrl?: string;
 };
 
 function hasValidImageSignature(type: string, bytes: Uint8Array) {
@@ -53,19 +54,38 @@ export async function uploadProfilePhoto(
 
   try {
     const safeUserId = current.id.replace(/[^a-zA-Z0-9_-]/g, "-");
-    const blob = await put(
-      `avatars/${safeUserId}/${crypto.randomUUID()}.${extensions[photo.type]}`,
-      photo,
-      {
+    const fileName = `${crypto.randomUUID()}.${extensions[photo.type]}`;
+    let imageUrl: string;
+    if (
+      process.env.BLOB_READ_WRITE_TOKEN ||
+      (process.env.BLOB_STORE_ID && process.env.VERCEL_OIDC_TOKEN)
+    ) {
+      const blob = await put(`avatars/${safeUserId}/${fileName}`, photo, {
         access: "public",
         contentType: photo.type,
         cacheControlMaxAge: 60 * 60 * 24 * 365,
-      },
-    );
+      });
+      imageUrl = blob.url;
+    } else if (process.env.NODE_ENV !== "production") {
+      const [{ mkdir, writeFile }, path] = await Promise.all([
+        import("node:fs/promises"),
+        import("node:path"),
+      ]);
+      const relativeDirectory = path.join("uploads", "avatars", safeUserId);
+      const directory = path.join(process.cwd(), "public", relativeDirectory);
+      await mkdir(directory, { recursive: true });
+      await writeFile(path.join(directory, fileName), bytes);
+      imageUrl = `/${relativeDirectory.split(path.sep).join("/")}/${fileName}`;
+    } else {
+      return {
+        error:
+          "Profile photo storage is not configured. Add BLOB_READ_WRITE_TOKEN to the deployment environment.",
+      };
+    }
     const db = getDb();
     await db
       .update(users)
-      .set({ image: blob.url, updatedAt: new Date() })
+      .set({ image: imageUrl, updatedAt: new Date() })
       .where(eq(users.id, current.id));
     await db.insert(auditLogs).values({
       actorId: current.id,
@@ -75,11 +95,20 @@ export async function uploadProfilePhoto(
     });
     revalidatePath("/", "layout");
     revalidatePath("/settings/profile");
-    return { success: "Profile photo updated." };
-  } catch {
+    return { success: "Profile photo uploaded successfully.", imageUrl };
+  } catch (error) {
+    console.error("Profile photo upload failed", error);
+    const configuredToken = process.env.BLOB_READ_WRITE_TOKEN;
+    const detail =
+      error instanceof Error && error.message
+        ? configuredToken
+          ? error.message
+              .replaceAll(configuredToken, "[redacted]")
+              .slice(0, 240)
+          : error.message.slice(0, 240)
+        : "Unknown storage error";
     return {
-      error:
-        "The photo could not be uploaded. Check that profile storage is configured.",
+      error: `Upload failed: ${detail}`,
     };
   }
 }

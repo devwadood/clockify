@@ -25,6 +25,7 @@ const reportInput = z
     from: z.iso.date(),
     to: z.iso.date(),
     billable: z.enum(["any", "yes", "no"]).default("any"),
+    groupBy: z.enum(["none", "project"]).default("project"),
   })
   .refine((value) => value.to >= value.from, {
     path: ["to"],
@@ -41,6 +42,7 @@ export async function generateReport(formData: FormData) {
     from: formData.get("from"),
     to: formData.get("to"),
     billable: formData.get("billable") || "any",
+    groupBy: formData.get("groupBy") || "project",
   });
   if (!parsed.success)
     throw new Error(
@@ -87,6 +89,7 @@ export async function generateReport(formData: FormData) {
     from: input.from,
     to: input.to,
     billable: input.billable,
+    groupBy: input.groupBy,
     scope: input.scope,
     projectIds,
     excludedProjectIds: input.excludedProjectIds.filter((id) =>

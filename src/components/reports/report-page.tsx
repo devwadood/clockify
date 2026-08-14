@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { requireUser } from "@/lib/auth/session";
 import { TRACKER_WEBSITE_LABEL, TRACKER_WEBSITE_URL } from "@/lib/brand";
 import { getReportData } from "@/lib/reports/data";
+import type { AwaitedReportData } from "@/lib/reports/types";
 import { formatDuration } from "@/lib/utils";
 import { PageHeader } from "@/components/ui/page-header";
 import { createReportShareLink } from "@/server/actions/reports";
@@ -112,48 +113,39 @@ export async function ReportPage({ reportId }: { reportId: string }) {
                 ))}
               </tr>
             </thead>
-            <tbody>
-              {data.entries.map((entry) => (
-                <tr key={entry.id} className="border-t border-[var(--border)]">
-                  <td className="px-4 py-3">{entry.date}</td>
-                  <td className="px-4 py-3">{entry.member}</td>
-                  <td className="px-4 py-3">{entry.project}</td>
-                  <td className="max-w-64 truncate px-4 py-3 font-semibold">
-                    {entry.description}
-                  </td>
-                  <td className="muted px-4 py-3">
-                    {new Intl.DateTimeFormat("en-GB", {
-                      timeZone: entry.timezone,
-                      hour: "2-digit",
-                      minute: "2-digit",
-                      hourCycle: "h23",
-                    }).format(entry.startedAt)}
-                    –
-                    {new Intl.DateTimeFormat("en-GB", {
-                      timeZone: entry.timezone,
-                      hour: "2-digit",
-                      minute: "2-digit",
-                      hourCycle: "h23",
-                    }).format(entry.endedAt)}
-                  </td>
-                  <td className="px-4 py-3 font-semibold">
-                    {formatDuration(entry.durationMinutes)}
-                  </td>
-                  <td className="px-4 py-3">
-                    {entry.billable
-                      ? new Intl.NumberFormat("en", {
-                          style: "currency",
-                          currency: entry.currency,
-                        }).format(
-                          (entry.durationMinutes / 60) *
-                            Number(entry.hourlyRate ?? 0),
-                        )
-                      : "—"}
-                  </td>
-                  <td className="px-4 py-3 capitalize">{entry.status}</td>
-                </tr>
-              ))}
-            </tbody>
+            {data.filters.groupBy === "project" ? (
+              data.projectGroups.map((group) => (
+                <tbody key={group.projectId}>
+                  <tr className="border-t border-[var(--border)] bg-[var(--accent-soft)]">
+                    <td colSpan={8} className="px-4 py-3">
+                      <div className="flex flex-wrap items-center gap-x-5 gap-y-1">
+                        <b className="flex items-center gap-2 text-sm">
+                          <span
+                            className="size-2.5 rounded-full"
+                            style={{ backgroundColor: group.color }}
+                          />
+                          {group.project}
+                        </b>
+                        <span className="muted text-xs">
+                          Subtotal: {formatDuration(group.totalMinutes)}
+                        </span>
+                        <span className="muted text-xs">
+                          Billable: {formatDuration(group.billableMinutes)}
+                        </span>
+                        <span className="ml-auto text-xs font-semibold">
+                          {formatAmounts(group.amounts)}
+                        </span>
+                      </div>
+                    </td>
+                  </tr>
+                  <EntryRows entries={group.entries} />
+                </tbody>
+              ))
+            ) : (
+              <tbody>
+                <EntryRows entries={data.entries} />
+              </tbody>
+            )}
           </table>
         </div>
         {!data.entries.length && (
@@ -175,6 +167,60 @@ export async function ReportPage({ reportId }: { reportId: string }) {
       </p>
     </>
   );
+}
+
+function formatAmounts(amounts: Record<string, number>) {
+  const values = Object.entries(amounts);
+  if (!values.length) return "No billable amount";
+  return values
+    .map(([currency, amount]) =>
+      new Intl.NumberFormat("en", { style: "currency", currency }).format(
+        amount,
+      ),
+    )
+    .join(" · ");
+}
+
+function EntryRows({ entries }: { entries: AwaitedReportData["entries"] }) {
+  return entries.map((entry) => (
+    <tr key={entry.id} className="border-t border-[var(--border)]">
+      <td className="px-4 py-3">{entry.date}</td>
+      <td className="px-4 py-3">{entry.member}</td>
+      <td className="px-4 py-3">{entry.project}</td>
+      <td className="max-w-64 truncate px-4 py-3 font-semibold">
+        {entry.description}
+      </td>
+      <td className="muted px-4 py-3">
+        {new Intl.DateTimeFormat("en-GB", {
+          timeZone: entry.timezone,
+          hour: "2-digit",
+          minute: "2-digit",
+          hourCycle: "h23",
+        }).format(entry.startedAt)}
+        –
+        {new Intl.DateTimeFormat("en-GB", {
+          timeZone: entry.timezone,
+          hour: "2-digit",
+          minute: "2-digit",
+          hourCycle: "h23",
+        }).format(entry.endedAt)}
+      </td>
+      <td className="px-4 py-3 font-semibold">
+        {formatDuration(entry.durationMinutes)}
+      </td>
+      <td className="px-4 py-3">
+        {entry.billable
+          ? new Intl.NumberFormat("en", {
+              style: "currency",
+              currency: entry.currency,
+            }).format(
+              (entry.durationMinutes / 60) * Number(entry.hourlyRate ?? 0),
+            )
+          : "—"}
+      </td>
+      <td className="px-4 py-3 capitalize">{entry.status}</td>
+    </tr>
+  ));
 }
 function Stat({ label, value }: { label: string; value: string }) {
   return (

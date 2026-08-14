@@ -15,8 +15,9 @@ import { getDb } from "@/db";
 import { projectMembers, projects, timeEntries, user } from "@/db/schema";
 import { ProjectInviteForm } from "@/components/projects/project-invite-form";
 import { ConfirmSubmitButton } from "@/components/ui/confirm-submit-button";
+import { UserAvatar } from "@/components/ui/user-avatar";
 import { requireUser } from "@/lib/auth/session";
-import { formatDuration, initials } from "@/lib/utils";
+import { formatDuration } from "@/lib/utils";
 import {
   leaveProject,
   removeProjectMember,
@@ -87,6 +88,7 @@ export async function ProjectPage({
         id: user.id,
         name: user.name,
         email: user.email,
+        image: user.image,
         role: projectMembers.role,
       })
       .from(projectMembers)
@@ -154,9 +156,11 @@ export async function ProjectPage({
               key={member.id}
               className="flex items-center gap-3 border-b border-[var(--border)] p-4 last:border-0"
             >
-              <span className="grid size-9 place-items-center rounded-lg bg-[var(--surface-2)] text-xs font-bold">
-                {initials(member.name)}
-              </span>
+              <UserAvatar
+                name={member.name}
+                image={member.image}
+                className="size-9 rounded-lg"
+              />
               <div className="min-w-0 flex-1">
                 <b className="block truncate text-sm">{member.name}</b>
                 <p className="muted truncate text-xs">{member.email}</p>

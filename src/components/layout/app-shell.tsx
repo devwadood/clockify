@@ -11,17 +11,22 @@ import {
   ChevronDown,
   CircleHelp,
   Command,
+  Globe2,
   LayoutDashboard,
+  LockKeyhole,
   Menu,
   PanelLeftClose,
   Play,
   Plus,
   Search,
   Settings,
+  ScrollText,
+  ShieldCheck,
   LogOut,
   Share2,
   TimerReset,
   Users,
+  UserRound,
   X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -42,9 +47,11 @@ const nav = [
 export function AppShell({
   children,
   user,
+  theme,
 }: {
   children: React.ReactNode;
   user: { name: string; email: string; image: string | null };
+  theme: "system" | "light" | "dark";
 }) {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
@@ -131,6 +138,28 @@ export function AppShell({
           <Settings size={18} />
           {!collapsed && "Settings"}
         </Link>
+        <Link
+          href="/terms"
+          title={collapsed ? "Terms of service" : undefined}
+          className={cn(
+            "flex h-10 items-center rounded-lg text-[13.5px] font-medium text-[var(--muted)] hover:bg-[var(--surface-2)]",
+            collapsed ? "justify-center" : "gap-3 px-2.5",
+          )}
+        >
+          <ScrollText size={18} />
+          {!collapsed && "Terms of service"}
+        </Link>
+        <Link
+          href="/privacy"
+          title={collapsed ? "Privacy policy" : undefined}
+          className={cn(
+            "flex h-10 items-center rounded-lg text-[13.5px] font-medium text-[var(--muted)] hover:bg-[var(--surface-2)]",
+            collapsed ? "justify-center" : "gap-3 px-2.5",
+          )}
+        >
+          <ShieldCheck size={18} />
+          {!collapsed && "Privacy policy"}
+        </Link>
         <button
           className={cn(
             "flex h-10 w-full items-center rounded-lg text-[13.5px] font-medium text-[var(--muted)] hover:bg-[var(--surface-2)]",
@@ -167,10 +196,13 @@ export function AppShell({
   );
 
   return (
-    <div className="min-h-screen">
+    <div
+      className="min-h-screen bg-[var(--background)] text-[var(--text)]"
+      data-theme={theme === "system" ? undefined : theme}
+    >
       <aside
         className={cn(
-          "desktop-only fixed inset-y-0 left-0 z-30 flex flex-col border-r border-[var(--border)] bg-[var(--surface)] transition-[width] duration-200",
+          "desktop-only fixed inset-y-0 left-0 z-30 flex flex-col overflow-y-auto border-r border-[var(--border)] bg-[var(--surface)] transition-[width] duration-200",
           collapsed ? "w-[72px]" : "w-[230px]",
         )}
       >
@@ -182,7 +214,7 @@ export function AppShell({
             onClick={() => setMobileOpen(false)}
             className="fixed inset-0 z-40 bg-black/30 backdrop-blur-[2px] md:hidden"
           />
-          <aside className="fixed inset-y-0 left-0 z-50 flex w-[280px] flex-col bg-[var(--surface)] shadow-2xl md:hidden">
+          <aside className="fixed inset-y-0 left-0 z-50 flex w-[280px] flex-col overflow-y-auto bg-[var(--surface)] shadow-2xl md:hidden">
             {sidebar}
           </aside>
         </>
@@ -216,38 +248,91 @@ export function AppShell({
               <Play size={14} fill="currentColor" />
               Start timer
             </Link>
-            <button
-              aria-label="Notifications"
-              className="btn icon-btn relative"
-            >
-              <Bell size={17} />
-              <span className="absolute top-2 right-2 size-1.5 rounded-full bg-[var(--danger)] ring-2 ring-[var(--surface)]" />
-            </button>
-            <Link
-              href="/settings/profile"
-              aria-label={`Open profile settings for ${user.name}`}
-              className="flex items-center gap-2 rounded-lg p-1.5 hover:bg-[var(--surface)]"
-            >
-              <span
-                className="grid size-8 place-items-center rounded-lg bg-[#292733] bg-cover bg-center text-[11px] font-bold text-white"
-                style={
-                  user.image
-                    ? { backgroundImage: `url(${user.image})` }
-                    : undefined
-                }
+            <span className="group/notice relative">
+              <button
+                disabled
+                aria-label="Notifications coming soon"
+                className="btn icon-btn cursor-not-allowed opacity-45"
               >
-                {!user.image && initials(user.name)}
+                <Bell size={17} />
+              </button>
+              <span
+                role="tooltip"
+                className="pointer-events-none absolute top-full right-0 z-50 mt-2 w-max translate-y-1 rounded-lg bg-[#202027] px-2.5 py-1.5 text-[11px] font-semibold text-white opacity-0 shadow-lg transition group-hover/notice:translate-y-0 group-hover/notice:opacity-100"
+              >
+                Coming soon
               </span>
-              <ChevronDown size={14} className="desktop-only muted" />
-            </Link>
+            </span>
+            <div className="group/profile relative">
+              <button
+                aria-label={`Open profile menu for ${user.name}`}
+                aria-haspopup="menu"
+                className="flex items-center gap-2 rounded-lg p-1.5 hover:bg-[var(--surface)] focus:bg-[var(--surface)]"
+              >
+                <span
+                  className="grid size-8 place-items-center rounded-lg bg-[#292733] bg-cover bg-center text-[11px] font-bold text-white"
+                  style={
+                    user.image
+                      ? { backgroundImage: `url(${user.image})` }
+                      : undefined
+                  }
+                >
+                  {!user.image && initials(user.name)}
+                </span>
+                <ChevronDown size={14} className="desktop-only muted" />
+              </button>
+              <div className="invisible absolute top-full right-0 z-50 w-60 translate-y-1 pt-2 opacity-0 transition group-hover/profile:visible group-hover/profile:translate-y-0 group-hover/profile:opacity-100 group-focus-within/profile:visible group-focus-within/profile:translate-y-0 group-focus-within/profile:opacity-100">
+                <div
+                  role="menu"
+                  className="overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--surface)] p-2 shadow-xl"
+                >
+                  <div className="border-b border-[var(--border)] px-3 py-2.5">
+                    <b className="block truncate text-sm">{user.name}</b>
+                    <span className="muted mt-0.5 block truncate text-xs">
+                      {user.email}
+                    </span>
+                  </div>
+                  <div className="py-1">
+                    {[
+                      [UserRound, "Profile", "/settings/profile"],
+                      [Globe2, "Preferences", "/settings/preferences"],
+                      [LockKeyhole, "Security", "/settings/security"],
+                      [Bell, "Notifications", "/settings/notifications"],
+                    ].map(([Icon, label, href]) => (
+                      <Link
+                        key={href as string}
+                        href={href as string}
+                        role="menuitem"
+                        className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm hover:bg-[var(--surface-2)]"
+                      >
+                        <Icon size={16} className="muted" />
+                        {label as string}
+                      </Link>
+                    ))}
+                  </div>
+                  <form
+                    action={logout}
+                    className="border-t border-[var(--border)] pt-1"
+                  >
+                    <button
+                      role="menuitem"
+                      className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm text-red-600 hover:bg-red-500/[.07]"
+                    >
+                      <LogOut size={16} />
+                      Log out
+                    </button>
+                  </form>
+                </div>
+              </div>
+            </div>
           </div>
         </header>
         <main className="mx-auto min-h-[calc(100vh-64px)] max-w-[1500px] p-4 pb-24 md:p-7 md:pb-8">
           {children}
         </main>
       </div>
-      <nav className="mobile-only fixed right-3 bottom-3 left-3 z-30 flex h-16 items-center justify-around rounded-2xl border border-[var(--border)] bg-[color-mix(in_srgb,var(--surface)_92%,transparent)] px-2 shadow-xl backdrop-blur-xl">
-        {nav.slice(0, 4).map((item) => (
+      <nav className="mobile-only fixed right-3 bottom-3 left-3 z-30 grid h-16 grid-cols-5 items-center rounded-2xl border border-[var(--border)] bg-[color-mix(in_srgb,var(--surface)_92%,transparent)] px-2 shadow-xl backdrop-blur-xl">
+        {[nav[0], nav[2]].map((item) => (
           <Link
             key={item.href}
             href={item.href}
@@ -265,10 +350,23 @@ export function AppShell({
         <Link
           href="/timer"
           aria-label="Add entry"
-          className="absolute -top-7 right-4 grid size-13 place-items-center rounded-full bg-[var(--accent)] text-white shadow-lg shadow-[#6558d3]/25"
+          className="mx-auto -mt-8 grid size-13 place-items-center rounded-full bg-[var(--accent)] text-white shadow-lg shadow-[#6558d3]/25"
         >
           <Plus size={23} />
         </Link>
+        {[nav[3], nav[4]].map((item) => (
+          <Link
+            key={item.href}
+            href={item.href}
+            className={cn(
+              "flex min-w-0 flex-col items-center gap-1 text-[10px] font-semibold",
+              pathname.startsWith(item.href) ? "text-[var(--accent)]" : "muted",
+            )}
+          >
+            <item.icon size={20} />
+            <span className="max-w-full truncate">{item.label}</span>
+          </Link>
+        ))}
       </nav>
     </div>
   );

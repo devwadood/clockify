@@ -98,20 +98,36 @@ export default async function SharedReport({
           ))}
         </div>
         <h2 className="mt-6 text-sm font-bold">Time entries</h2>
-        <div className="mt-3 divide-y divide-[var(--border)]">
-          {data.entries.map((entry) => (
-            <div key={entry.id} className="flex gap-3 py-4 text-sm">
-              <div className="min-w-0 flex-1">
-                <b className="block truncate">{entry.description}</b>
-                <p className="muted mt-1 text-xs">
-                  {entry.date} · {entry.project} · {entry.member}
-                </p>
-              </div>
-              <span className="font-semibold">
-                {formatDuration(entry.durationMinutes)}
-              </span>
+        <div className="mt-3">
+          {data.filters.groupBy === "project" ? (
+            data.projectGroups.map((group) => (
+              <section
+                key={group.projectId}
+                className="mt-4 overflow-hidden rounded-xl border border-[var(--border)] first:mt-0"
+              >
+                <div className="flex flex-wrap items-center gap-3 bg-[var(--accent-soft)] px-4 py-3">
+                  <b className="flex items-center gap-2 text-sm">
+                    <span
+                      className="size-2.5 rounded-full"
+                      style={{ backgroundColor: group.color }}
+                    />
+                    {group.project}
+                  </b>
+                  <span className="muted ml-auto text-xs">
+                    Subtotal {formatDuration(group.totalMinutes)} · Billable{" "}
+                    {formatDuration(group.billableMinutes)}
+                  </span>
+                </div>
+                <div className="divide-y divide-[var(--border)] px-4">
+                  <SharedEntryRows entries={group.entries} />
+                </div>
+              </section>
+            ))
+          ) : (
+            <div className="divide-y divide-[var(--border)]">
+              <SharedEntryRows entries={data.entries} />
             </div>
-          ))}
+          )}
           {!data.entries.length && (
             <p className="muted py-8 text-center text-sm">
               No entries match this report.
@@ -132,6 +148,26 @@ export default async function SharedReport({
       </p>
     </PublicFrame>
   );
+}
+
+function SharedEntryRows({
+  entries,
+}: {
+  entries: NonNullable<Awaited<ReturnType<typeof getReportData>>>["entries"];
+}) {
+  return entries.map((entry) => (
+    <div key={entry.id} className="flex gap-3 py-4 text-sm">
+      <div className="min-w-0 flex-1">
+        <b className="block truncate">{entry.description}</b>
+        <p className="muted mt-1 text-xs">
+          {entry.date} · {entry.project} · {entry.member}
+        </p>
+      </div>
+      <span className="font-semibold">
+        {formatDuration(entry.durationMinutes)}
+      </span>
+    </div>
+  ));
 }
 function Unavailable() {
   return (

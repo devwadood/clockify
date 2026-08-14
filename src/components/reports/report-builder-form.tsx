@@ -162,6 +162,13 @@ export function ReportBuilderForm({
             <option value="no">Non-billable only</option>
           </select>
         </div>
+        <div>
+          <label className="label">Group entries</label>
+          <select name="groupBy" className="field" defaultValue="project">
+            <option value="project">Group by project with subtotals</option>
+            <option value="none">No grouping</option>
+          </select>
+        </div>
       </div>
       <div className="flex justify-end border-t border-[var(--border)] bg-[var(--surface-2)] p-4">
         <button
